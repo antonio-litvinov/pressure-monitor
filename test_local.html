@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цифровой тонометр - Локальная версия</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩺 <span class="ai">Цифровой-</span><span class="assistant">тонометр</span></h1>
+            <p>Измерение артериального давления по видео с помощью искусственного интеллекта</p>
+        </div>
+
+        <div class="video-section">
+            <div class="video-preview" id="videoPreview">
+                <div style="text-align: center; color: #999999;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📹</div>
+                    <div>Нажмите кнопку для съемки</div>
+                    <div style="font-size: 12px; margin-top: 10px; opacity: 0.7;">
+                        Запись автоматически остановится через 10 секунд
+                    </div>
+                </div>
+            </div>
+
+            <div class="timer hidden" id="timer">⏱️ Осталось: 10 сек</div>
+
+            <button class="record-button" id="recordButton">
+                🎥 Начать съемку
+            </button>
+
+            <div class="controls hidden" id="controls">
+                <button class="control-button primary" id="sendButton">
+                    📤 Отправить на анализ
+                </button>
+            </div>
+        </div>
+
+        <div class="status hidden" id="status"></div>
+    </div>
+
+    <script>
+        // Константы
+        const VIDEO_MIME_TYPE = 'video/webm';
+        const RECORDING_DURATION = 10; // секунд
+        
+        const ERROR_MESSAGES = {
+            NotAllowedError: 'Доступ к камере запрещен. Разрешите доступ в настройках браузера.',
+            NotFoundError: 'Камера не найдена. Проверьте подключение устройства.',
+            NotReadableError: 'Камера занята другим приложением. Закройте другие приложения.',
+            NotSupportedError: 'Ваш браузер не поддерживает запись видео.',
+            OverconstrainedError: 'Камера не поддерживает запрошенные параметры.'
+        };
+        
+        const DEFAULT_PRESSURE = {
+            systolic: '120',
+            diastolic: '80',
+            category: 'Нормальное'
+        };
+        
+        // Конфигурация API сервера
+        let SERVER_CONFIG = {
+            baseUrl: 'https://api.pressure-monitor.ru',
+            endpoints: {
+                processVideo: '/api/process-video'
+            }
+        };
+
+        // Элементы интерфейса
+        const videoPreview = document.getElementById('videoPreview');
+        const recordButton = document.getElementById('recordButton');
+        const timer = document.getElementById('timer');
+        const controls = document.getElementById('controls');
+        const sendButton = document.getElementById('sendButton');
+        const status = document.getElementById('status');
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stream;
+        let timerInterval;
+        let recordingTime = 0;
+
+        // Логирование конфигурации сервера
+        function logServerConfig() {
+            console.log('API сервер:', SERVER_CONFIG.baseUrl);
+        }
+
+        // Показать статус
+        function showStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.remove('hidden');
+            setTimeout(() => {
+                status.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Обновить таймер
+        function updateTimer() {
+            const remaining = RECORDING_DURATION - recordingTime;
+            timer.textContent = `⏱️ Осталось: ${remaining} сек`;
+            
+            if (remaining <= 0) {
+                // Автоматически останавливаем запись
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                    clearInterval(timerInterval);
+                    
+                    recordButton.classList.remove('recording');
+                    recordButton.disabled = false; // Включаем кнопку обратно
+                    timer.classList.add('hidden');
+                    videoPreview.classList.remove('recording');
+                    
+                    showStatus('⏹️ Запись автоматически остановлена', 'info');
+                }
+            }
+        }
+
+        // Запрос доступа к камере
+        async function getCameraAccess() {
+            try {
+                showStatus('🔍 Запрос доступа к камере...', 'info');
+                
+                const constraints = {
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }, 
+                    audio: true 
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.muted = true;
+
+                videoPreview.innerHTML = '';
+                videoPreview.appendChild(video);
+                
+                showStatus('✅ Камера готова к записи', 'success');
+                recordButton.disabled = false;
+            } catch (err) {
+                console.error('Ошибка доступа к камере:', err);
+                
+                const errorMessage = ERROR_MESSAGES[err.name] || err.message || 'Ошибка доступа к камере';
+                showStatus(`❌ ${errorMessage}`, 'error');
+            }
+        }
+
+        // Начать запись
+        async function startRecording() {
+            if (!stream) {
+                showStatus('❌ Нет доступа к камере', 'error');
+                return;
+            }
+
+            recordedChunks = [];
+            recordingTime = 0;
+            
+            if (!MediaRecorder.isTypeSupported(VIDEO_MIME_TYPE)) {
+                showStatus('❌ Браузер не поддерживает запись видео в формате webm', 'error');
+                return;
+            }
+
+            try {
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: VIDEO_MIME_TYPE
+                });
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.controls = true;
+                    video.style.width = '100%';
+                    video.style.height = '100%';
+                    video.style.objectFit = 'cover';
+
+                    videoPreview.innerHTML = '';
+                    videoPreview.appendChild(video);
+                    videoPreview.classList.remove('recording');
+                    
+                    // Показываем кнопки управления для отправки
+                    controls.classList.remove('hidden');
+                    
+                    showStatus('✅ Запись завершена! Готово к отправке на анализ.', 'success');
+                };
+
+                mediaRecorder.onerror = (event) => {
+                    console.error('Ошибка записи:', event.error);
+                    showStatus('❌ Ошибка записи видео', 'error');
+                };
+
+                mediaRecorder.start(1000); // Записываем чанки каждую секунду
+                
+                recordButton.classList.add('recording');
+                recordButton.disabled = true; // Отключаем кнопку во время записи
+                timer.classList.remove('hidden');
+                videoPreview.classList.add('recording');
+                showStatus('🎥 Идет запись...', 'recording');
+                
+                // Запуск таймера
+                timerInterval = setInterval(() => {
+                    recordingTime++;
+                    updateTimer();
+                }, 1000);
+                
+                updateTimer();
+            } catch (error) {
+                console.error('Ошибка при создании MediaRecorder:', error);
+                showStatus('❌ Ошибка создания записи', 'error');
+            }
+        }
+
+        // Сгенерировать имя файла для видео
+        function generateVideoFilename() {
+            const timestamp = getCurrentTimestamp();
+            return `pressure_video_${timestamp}.webm`;
+        }
+
+        // Получить текущий timestamp в нужном формате
+        function getCurrentTimestamp() {
+            return new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        }
+
+        // Получить понятное сообщение об ошибке
+        function getErrorMessage(error) {
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                return 'Не удается подключиться к серверу. Проверьте, запущен ли сервер.';
+            } else if (error.message.includes('HTTP 404')) {
+                return 'Сервер не найден. Проверьте адрес и порт.';
+            } else if (error.message.includes('HTTP 500')) {
+                return 'Ошибка на сервере. Проверьте логи сервера.';
+            } else {
+                return error.message || 'Ошибка отправки видео';
+            }
+        }
+
+        // Отправить видео на анализ
+        async function sendVideo() {
+            if (recordedChunks.length === 0) {
+                showStatus('❌ Нет записанного видео', 'error');
+                return;
+            }
+
+            // Создаем Blob в формате webm
+            const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
+            
+            if (blob.size === 0) {
+                showStatus('❌ Видео пустое (0 байт)', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('📤 Отправляю видео на анализ...', 'uploading');
+                
+                const apiUrl = SERVER_CONFIG.baseUrl + SERVER_CONFIG.endpoints.processVideo;
+                
+                const formData = new FormData();
+                const filename = generateVideoFilename();
+                formData.append('video', blob, filename);
+                formData.append('timestamp', new Date().toISOString());
+                formData.append('user_id', 'web_user');
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showStatus('✅ Видео успешно проанализировано!', 'success');
+                        
+                        // Показываем результат
+                        setTimeout(() => {
+                            showPressureResult(result);
+                        }, 1000);
+                    } else {
+                        throw new Error(result.error || 'Неизвестная ошибка сервера');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+            } catch (error) {
+                console.error('Ошибка отправки:', error);
+                
+                const errorMessage = getErrorMessage(error);
+                showStatus(`❌ ${errorMessage}`, 'error');
+            }
+        }
+
+        // Показать результат измерения давления
+        function showPressureResult(result) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result-section';
+            
+            // Парсим результат (предполагаем, что сервер возвращает данные о давлении)
+            const pressureData = result.data || {};
+            const systolic = pressureData.systolic || DEFAULT_PRESSURE.systolic;
+            const diastolic = pressureData.diastolic || DEFAULT_PRESSURE.diastolic;
+            const category = pressureData.category || DEFAULT_PRESSURE.category;
+            
+            resultDiv.innerHTML = `
+                <h3>📊 Результат измерения</h3>
+                <div class="pressure-result">
+                    <div class="pressure-value">${systolic}/${diastolic}</div>
+                    <div class="pressure-category">${category}</div>
+                    <div style="margin-top: 15px; font-size: 14px; color: #666666;">
+                        <p><strong>Время измерения:</strong> ${new Date().toLocaleTimeString()}</p>
+                        <p><strong>Качество видео:</strong> ${result.quality || 'Хорошее'}</p>
+                        <p><strong>Файл:</strong> ${result.filename || 'Неизвестно'}</p>
+                        <p><strong>Размер:</strong> ${result.size ? (result.size / 1024).toFixed(1) + ' КБ' : 'Неизвестно'}</p>
+                    </div>
+                </div>
+                <button class="control-button primary" onclick="resetApp()">
+                    🎬 Новое измерение
+                </button>
+            `;
+            
+            // Заменяем содержимое
+            document.querySelector('.container').innerHTML = '';
+            document.querySelector('.container').appendChild(resultDiv);
+        }
+
+        // Сброс приложения
+        function resetApp() {
+            location.reload();
+        }
+
+        // Обработчики событий
+        recordButton.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                // Во время записи кнопка не реагирует
+                return;
+            } else {
+                startRecording();
+            }
+        });
+
+        sendButton.addEventListener('click', sendVideo);
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', () => {
+            getCameraAccess();
+        });
+
+        // Очистка при закрытии страницы
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Инициализация
+        showStatus('Приложение загружено и готово к работе', 'info');
+        logServerConfig();
+    </script>
+</body>
+</html>
