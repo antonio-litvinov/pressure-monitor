@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Регистрация - Цифровой тонометр</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .app-content {
+            padding: 0 20px 100px;
+            min-height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 20px;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            background: rgba(248, 250, 252, 0.8);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 12px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .app-subtitle {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .welcome-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .welcome-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .form-section {
+            flex: 1;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid rgba(226, 232, 240, 0.8);
+            border-radius: 12px;
+            font-size: 16px;
+            background: rgba(248, 250, 252, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .input-field::placeholder {
+            color: #94a3b8;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .checkbox-text {
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.4;
+            cursor: pointer;
+        }
+
+        .checkbox-text a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .register-button {
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            border: none;
+            padding: 18px;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .register-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .register-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(226, 232, 240, 0.8);
+        }
+
+        .divider-text {
+            background: #ffffff;
+            padding: 0 15px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .social-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .social-button {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid rgba(226, 232, 240, 0.8);
+            border-radius: 12px;
+            background: rgba(248, 250, 252, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .social-button:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .login-text {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .login-text a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .features-preview {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.05));
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .features-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .feature-item {
+            font-size: 12px;
+            color: #334155;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-item::before {
+            content: '✓';
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        /* Animation for loading state */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>●●●○○</span>
+            <span>100%</span>
+        </div>
+
+        <!-- Main Content -->
+        <div class="app-content">
+            <div class="back-button" onclick="goBack()">← Назад</div>
+            
+            <div class="header">
+                <h1 class="app-title">Регистрация</h1>
+                <p class="app-subtitle">Создайте аккаунт для сохранения измерений</p>
+            </div>
+
+            <div class="welcome-section">
+                <div class="welcome-icon">🏥</div>
+                <div class="welcome-text">Добро пожаловать!</div>
+                <div class="welcome-subtitle">Зарегистрируйтесь, чтобы отслеживать свое здоровье</div>
+            </div>
+
+            <div class="features-preview">
+                <div class="features-title">🎯 Что вас ждет</div>
+                <div class="feature-list">
+                    <div class="feature-item">История измерений</div>
+                    <div class="feature-item">Графики трендов</div>
+                    <div class="feature-item">Персональные советы</div>
+                    <div class="feature-item">Напоминания</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="input-group">
+                    <label class="input-label">Имя</label>
+                    <input type="text" id="name" class="input-field" placeholder="Введите ваше имя">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Email</label>
+                    <input type="email" id="email" class="input-field" placeholder="example@mail.com">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Пароль</label>
+                    <input type="password" id="password" class="input-field" placeholder="Минимум 6 символов">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="terms" class="checkbox">
+                    <label for="terms" class="checkbox-text">
+                        Я согласен с <a href="#">Условиями использования</a> и <a href="#">Политикой конфиденциальности</a>
+                    </label>
+                </div>
+
+                <button class="register-button" id="registerBtn" onclick="register()">
+                    Создать аккаунт
+                </button>
+
+                <div class="divider">
+                    <span class="divider-text">или</span>
+                </div>
+
+                <div class="social-buttons">
+                    <div class="social-button" onclick="socialLogin('google')">🔍</div>
+                    <div class="social-button" onclick="socialLogin('apple')">🍎</div>
+                    <div class="social-button" onclick="socialLogin('facebook')">📘</div>
+                </div>
+
+                <div class="login-link">
+                    <p class="login-text">
+                        Уже есть аккаунт? <a href="#" onclick="showLogin()">Войти</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            // Имитация возврата назад
+            alert('Возврат на предыдущую страницу');
+        }
+
+        function register() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const terms = document.getElementById('terms').checked;
+            const button = document.getElementById('registerBtn');
+
+            // Простая валидация
+            if (!name || !email || !password) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+
+            if (!terms) {
+                alert('Необходимо согласиться с условиями использования');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Пароль должен содержать минимум 6 символов');
+                return;
+            }
+
+            // Имитация процесса регистрации
+            button.classList.add('loading');
+            button.textContent = 'Создание аккаунта...';
+
+            setTimeout(() => {
+                button.classList.remove('loading');
+                button.textContent = 'Аккаунт создан!';
+                button.style.background = '#10b981';
+                
+                setTimeout(() => {
+                    alert('Регистрация успешна! Добро пожаловать в Цифровой тонометр!');
+                }, 1000);
+            }, 2000);
+        }
+
+        function socialLogin(provider) {
+            alert(`Вход через ${provider.charAt(0).toUpperCase() + provider.slice(1)}`);
+        }
+
+        function showLogin() {
+            alert('Переход к странице входа');
+        }
+
+        // Проверка формы в реальном времени
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('.input-field');
+            const checkbox = document.getElementById('terms');
+            const button = document.getElementById('registerBtn');
+
+            function checkForm() {
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const terms = checkbox.checked;
+
+                if (name && email && password.length >= 6 && terms) {
+                    button.disabled = false;
+                } else {
+                    button.disabled = true;
+                }
+            }
+
+            inputs.forEach(input => {
+                input.addEventListener('input', checkForm);
+            });
+
+            checkbox.addEventListener('change', checkForm);
+
+            // Начальная проверка
+            checkForm();
+        });
+    </script>
+</body>
+</html>
