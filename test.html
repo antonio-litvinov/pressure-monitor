@@ -83,7 +83,7 @@
 
     <script>
         const VIDEO_MIME_TYPE = 'video/webm';
-        const RECORDING_DURATION = 2;
+        const RECORDING_DURATION = 10;
         
         const AI_SERVER_CONFIG = {
             baseUrl: 'https://model.pressure-monitor.ru',
@@ -129,8 +129,8 @@
         let resultCheckInterval = null, resultCheckAttempts = 0;
         
         // Константы
-        const MAX_RESULT_ATTEMPTS = 3;
-        const RESULT_CHECK_DELAY = 3000;
+        const MAX_RESULT_ATTEMPTS = 10;
+        const RESULT_CHECK_DELAY = 10000;
         const PROGRESS_STEPS = {
             RECORDING: 1,
             UPLOADING: 2, 
