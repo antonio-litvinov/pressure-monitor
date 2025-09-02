@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цифровой тонометр - AI версия</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    
+    <style>
+        /* Полноэкранный оверлей загрузки */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay-content {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px 28px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 260px;
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #e9ecef;
+            border-top-color: #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .overlay-text {
+            font-size: 16px;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        /* Индикатор прогресса */
+        .progress-container {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .progress-header {
+            margin-bottom: 20px;
+        }
+        
+        .progress-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        
+        .progress-status {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+            background: #e9ecef;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: #e9ecef;
+            z-index: 1;
+        }
+        
+        .step.active::after {
+            background: #007bff;
+        }
+        
+        .step.completed::after {
+            background: #28a745;
+        }
+        
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active .step-icon {
+            background: #007bff;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .step.completed .step-icon {
+            background: #28a745;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .step-text {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .step.active .step-text {
+            color: #007bff;
+            font-weight: 600;
+        }
+        
+        .step.completed .step-text {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        /* Стили для результатов */
+        .results-section {
+            margin-top: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .results-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .results-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .new-recording-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .new-recording-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .results-content {
+            padding: 32px;
+        }
+        
+        .pressure-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .pressure-title {
+            font-size: 18px;
+            color: #495057;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+        
+        .pressure-values {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .pressure-item {
+            text-align: center;
+        }
+        
+        .pressure-number {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .pressure-label {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .additional-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 24px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .info-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 4px;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Адаптивность для мобильных устройств */
+        @media (max-width: 768px) {
+            .pressure-number {
+                font-size: 28px;
+            }
+            
+            .pressure-values {
+                gap: 15px;
+            }
+            
+            .additional-info {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .results-content {
+                padding: 20px;
+            }
+            
+            .pressure-card {
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .pressure-number {
+                font-size: 24px;
+            }
+            
+            .pressure-values {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .additional-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="overlay hidden" id="loadingOverlay">
+            <div class="overlay-content">
+                <div class="spinner"></div>
+                <div class="overlay-text" id="overlayText">Идет обработка...</div>
+            </div>
+        </div>
+        <div class="header">
+            <h1>🩺 <span class="ai">Цифровой-</span><span class="assistant">тонометр</span></h1>
+            <p>Измерение артериального давления по видео с помощью искусственного интеллекта</p>
+        </div>
+
+        <div class="video-section">
+            <div class="video-preview" id="videoPreview">
+                <div style="text-align: center; color: #999999;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📹</div>
+                    <div>Нажмите кнопку для съемки</div>
+                    <div style="font-size: 12px; margin-top: 10px; opacity: 0.7;">
+                        Запись автоматически остановится через 10 секунд
+                    </div>
+                </div>
+            </div>
+
+            <div class="timer hidden" id="timer">⏱️ Осталось: 10 сек</div>
+
+            <button class="record-button" id="recordButton">
+                🎥 Начать съемку
+            </button>
+            
+            <!-- Индикатор прогресса -->
+            <div class="progress-container hidden" id="progressContainer">
+                <div class="progress-header">
+                    <div class="progress-title" id="progressTitle">Обработка видео</div>
+                    <div class="progress-status" id="progressStatus">Подготовка...</div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div class="progress-steps">
+                    <div class="step active" id="step1">
+                        <div class="step-icon">📹</div>
+                        <div class="step-text">Запись</div>
+                    </div>
+                    <div class="step" id="step2">
+                        <div class="step-icon">📤</div>
+                        <div class="step-text">Отправка</div>
+                    </div>
+                    <div class="step" id="step3">
+                        <div class="step-icon">🤖</div>
+                        <div class="step-text">AI анализ</div>
+                    </div>
+                    <div class="step" id="step4">
+                        <div class="step-icon">✅</div>
+                        <div class="step-text">Готово</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls hidden" id="controls">
+                <!-- Автоматический процесс - кнопки не нужны -->
+            </div>
+        </div>
+
+        <div class="status hidden" id="status"></div>
+        
+        <!-- Блок для результатов -->
+        <div class="results-section hidden" id="resultsSection">
+            <div class="results-header">
+                <h2>📊 Результаты анализа</h2>
+                <button class="new-recording-btn" id="newRecordingBtn">
+                    🎥 Новое измерение
+                </button>
+            </div>
+            <div class="results-content" id="resultsContent">
+                <!-- Сюда будут добавляться результаты -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Константы
+        const VIDEO_MIME_TYPE = 'video/webm';
+        const RECORDING_DURATION = 10; // секунд
+        
+        // Конфигурация AI сервера
+        const AI_SERVER_CONFIG = {
+            baseUrl: 'https://model.pressure-monitor.ru',
+            endpoints: {
+                upload: '/upload',
+                result: '/result'
+            }
+        };
+        
+        const ERROR_MESSAGES = {
+            NotAllowedError: 'Доступ к камере запрещен. Разрешите доступ в настройках браузера.',
+            NotFoundError: 'Камера не найдена. Проверьте подключение устройства.',
+            NotReadableError: 'Камера занята другим приложением. Закройте другие приложения.',
+            NotSupportedError: 'Ваш браузер не поддерживает запись видео.',
+            OverconstrainedError: 'Камера не поддерживает запрошенные параметры.'
+        };
+        
+        // Элементы интерфейса
+        const videoPreview = document.getElementById('videoPreview');
+        const recordButton = document.getElementById('recordButton');
+        const timer = document.getElementById('timer');
+        const controls = document.getElementById('controls');
+        const status = document.getElementById('status');
+        
+        // Элементы индикатора прогресса
+        const progressContainer = document.getElementById('progressContainer');
+        const progressTitle = document.getElementById('progressTitle');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressFill = document.getElementById('progressFill');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const step4 = document.getElementById('step4');
+        
+        // Элементы оверлея
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const overlayText = document.getElementById('overlayText');
+        
+        // Элементы результатов
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContent = document.getElementById('resultsContent');
+        const newRecordingBtn = document.getElementById('newRecordingBtn');
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stream;
+        let timerInterval;
+        let recordingTime = 0;
+        let currentTaskId = null; // ID текущей задачи
+        let resultCheckInterval = null; // Интервал для проверки результата
+        let resultCheckAttempts = 0; // Счетчик попыток проверки
+        const MAX_RESULT_ATTEMPTS = 10; // Максимум попыток
+        const RESULT_CHECK_DELAY = 5000; // 5 секунд между попытками
+
+
+
+        // Показать статус
+        function showStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.remove('hidden');
+            setTimeout(() => {
+                status.classList.add('hidden');
+            }, 5000);
+        }
+        
+        // Функции для управления индикатором прогресса
+        function showProgress() {
+            progressContainer.classList.remove('hidden');
+            progressContainer.style.opacity = '0';
+            setTimeout(() => {
+                progressContainer.style.transition = 'opacity 0.3s ease';
+                progressContainer.style.opacity = '1';
+            }, 100);
+            // Показываем полноэкранный оверлей
+            loadingOverlay.classList.remove('hidden');
+        }
+        
+        function hideProgress() {
+            progressContainer.style.opacity = '0';
+            setTimeout(() => {
+                progressContainer.classList.add('hidden');
+            }, 300);
+            // Скрываем оверлей
+            loadingOverlay.classList.add('hidden');
+        }
+        
+        function updateProgress(step, status, progressPercent) {
+            // Обновляем статус
+            progressStatus.textContent = status;
+            overlayText.textContent = status;
+            
+            // Обновляем прогресс-бар
+            progressFill.style.width = `${progressPercent}%`;
+            
+            // Обновляем шаги
+            step1.className = 'step';
+            step2.className = 'step';
+            step3.className = 'step';
+            step4.className = 'step';
+            
+            switch(step) {
+                case 1:
+                    step1.className = 'step active';
+                    break;
+                case 2:
+                    step1.className = 'step completed';
+                    step2.className = 'step active';
+                    break;
+                case 3:
+                    step1.className = 'step completed';
+                    step2.className = 'step completed';
+                    step3.className = 'step active';
+                    break;
+                case 4:
+                    step1.className = 'step completed';
+                    step2.className = 'step completed';
+                    step3.className = 'step completed';
+                    step4.className = 'step active';
+                    break;
+            }
+        }
+
+
+
+
+
+        // Автоматическая проверка результата
+        async function autoCheckResult() {
+            if (!currentTaskId) {
+                console.log('❌ Нет активной задачи для автоматической проверки');
+                return;
+            }
+
+            try {
+                resultCheckAttempts++;
+                console.log(`🔍 Попытка ${resultCheckAttempts}/${MAX_RESULT_ATTEMPTS} для задачи ${currentTaskId}`);
+                
+                const resultResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.result}/${currentTaskId}`, {
+                    method: 'GET'
+                });
+                
+                if (!resultResponse.ok) {
+                    throw new Error(`HTTP ${resultResponse.status}: ${resultResponse.statusText}`);
+                }
+
+                // Получаем текст ответа
+                const responseText = await resultResponse.text();
+                
+                // Проверяем, не пустой ли ответ
+                if (!responseText || responseText.trim() === '') {
+                    throw new Error('Сервер вернул пустой ответ');
+                }
+                
+                // Пытаемся распарсить JSON
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('❌ Ошибка парсинга JSON:', parseError);
+                    console.error('📄 Проблемный текст:', responseText);
+                    throw new Error(`Ошибка парсинга JSON: ${parseError.message}. Ответ сервера: "${responseText}"`);
+                }
+                
+                console.log('✅ Результат AI анализа получен:', result);
+
+                if (result.status === 'ok') {
+                    // Останавливаем автоматическую проверку
+                    stopAutoCheck();
+                    
+                    // Обновляем прогресс - завершение
+                    updateProgress(4, 'Результат готов!', 100);
+                    
+                    // Показываем результаты
+                    showResults(result);
+                    
+                    showStatus('✅ Результат получен автоматически!', 'ready');
+                    
+                    // Скрываем индикатор прогресса через 2 секунды
+                    setTimeout(() => {
+                        hideProgress();
+                    }, 2000);
+                } else {
+                    throw new Error(`Статус обработки не OK: ${result.status}`);
+                }
+
+            } catch (error) {
+                console.error(`❌ Ошибка автоматической проверки (попытка ${resultCheckAttempts}):`, error);
+                
+                if (error.message.includes('Сервер вернул пустой ответ')) {
+                    // Если сервер вернул пустой ответ, продолжаем попытки
+                    if (resultCheckAttempts < MAX_RESULT_ATTEMPTS) {
+                        console.log(`⏳ Сервер еще не готов, пробуем через 5 сек...`);
+                        return; // Продолжаем автоматическую проверку
+                    } else {
+                        // Достигнут максимум попыток
+                        showStatus('❌ Результат не готов. Попробуйте записать видео заново.', 'error');
+                        stopAutoCheck();
+                        
+                        // Скрываем индикатор прогресса при ошибке
+                        hideProgress();
+                    }
+                } else {
+                    // Другие ошибки - останавливаем автоматическую проверку
+                    showStatus(`❌ Ошибка: ${error.message}`, 'error');
+                    stopAutoCheck();
+                    
+                    // Скрываем индикатор прогресса при ошибке
+                    hideProgress();
+                }
+            }
+        }
+
+        // Запустить автоматическую проверку результата
+        function startAutoCheck() {
+            if (resultCheckInterval) {
+                clearInterval(resultCheckInterval);
+            }
+            
+            resultCheckAttempts = 0;
+            resultCheckInterval = setInterval(autoCheckResult, RESULT_CHECK_DELAY);
+            
+            // Обновляем прогресс - AI анализ
+            updateProgress(3, 'AI анализирует видео...', 75);
+            
+            showStatus('🔄 Проверяем результат...', 'info');
+        }
+
+        // Остановить автоматическую проверку результата
+        function stopAutoCheck() {
+            if (resultCheckInterval) {
+                clearInterval(resultCheckInterval);
+                resultCheckInterval = null;
+            }
+        }
+
+
+
+
+
+
+
+        // Обновить таймер
+        function updateTimer() {
+            const remaining = RECORDING_DURATION - recordingTime;
+            if (remaining <= 0) {
+                stopRecording();
+                return;
+            }
+            timer.textContent = `⏱️ Осталось: ${remaining} сек`;
+            recordingTime++;
+        }
+
+        // Начать/остановить запись
+        async function startRecording() {
+            // Если запись уже идет, останавливаем её
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopRecording();
+                return;
+            }
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 }, 
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }, 
+                    audio: false 
+                });
+                
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.muted = true;
+                video.playsInline = true;
+                
+                // Очищаем контейнер и добавляем видео
+                videoPreview.innerHTML = '';
+                videoPreview.appendChild(video);
+                
+                // Сбрасываем состояние при новой записи
+                currentTaskId = null;
+                
+                // Скрываем индикатор прогресса
+                hideProgress();
+                
+                // Останавливаем автоматическую проверку результата
+                stopAutoCheck();
+                
+                // Настройка MediaRecorder
+                mediaRecorder = new MediaRecorder(stream, { mimeType: VIDEO_MIME_TYPE });
+                recordedChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
+                    const videoUrl = URL.createObjectURL(blob);
+                    
+                    // Показываем записанное видео
+                    const recordedVideo = document.createElement('video');
+                    recordedVideo.src = videoUrl;
+                    recordedVideo.controls = true;
+                    recordedVideo.autoplay = false;
+                    recordedVideo.muted = true;
+                    recordedVideo.style.width = '100%';
+                    recordedVideo.style.height = '100%';
+                    recordedVideo.style.objectFit = 'cover';
+                    
+                    videoPreview.innerHTML = '';
+                    videoPreview.appendChild(recordedVideo);
+                    
+                    // Останавливаем поток камеры
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    // Показываем элементы управления
+                    controls.classList.remove('hidden');
+                    showStatus('✅ Запись завершена! Отправляем видео...', 'ready');
+                    
+                    // Автоматически отправляем видео на анализ
+                    setTimeout(() => {
+                        sendToAIAnalysis();
+                    }, 1000); // Небольшая задержка для лучшего UX
+                };
+                
+                // Начинаем запись
+                mediaRecorder.start();
+                recordingTime = 0;
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                // Обновляем UI
+                recordButton.disabled = true;
+                recordButton.textContent = '⏹️ Остановить запись';
+                timer.classList.remove('hidden');
+                videoPreview.classList.add('recording');
+                
+                showStatus('🎥 Идет запись...', 'recording');
+                
+            } catch (error) {
+                console.error('Ошибка доступа к камере:', error);
+                const errorMessage = ERROR_MESSAGES[error.name] || `Ошибка: ${error.message}`;
+                showStatus(errorMessage, 'error');
+                
+                // Скрываем индикатор прогресса при ошибке
+                hideProgress();
+            }
+        }
+
+        // Остановить запись
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            // Обновляем UI
+            recordButton.disabled = false;
+            recordButton.textContent = '🎥 Начать съемку';
+            timer.classList.add('hidden');
+            videoPreview.classList.remove('recording');
+            
+            // Прогресс не показываем на этапе записи
+        }
+
+        // Отправить видео на AI анализ
+        async function sendToAIAnalysis() {
+            if (recordedChunks.length === 0) {
+                showStatus('❌ Нет записанного видео для отправки', 'error');
+                return;
+            }
+
+            try {
+                // Обновляем прогресс - отправка
+                updateProgress(2, 'Отправка видео на сервер...', 50);
+                // Показываем прелоадер
+                showProgress();
+                
+                showStatus('📤 Отправка видео на анализ...', 'uploading');
+                // Кнопка отправки больше не нужна, так как отправка автоматическая
+
+                // Создаем FormData с видео
+                const formData = new FormData();
+                const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
+                formData.append('file', blob, 'video.webm');
+
+                // Отправляем на AI сервер
+                const uploadResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.upload}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error(`HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`);
+                }
+
+                const uploadResult = await uploadResponse.text();
+                console.log('📄 Текст ответа загрузки:', uploadResult);
+                
+                // Проверяем, не пустой ли ответ
+                if (!uploadResult || uploadResult.trim() === '') {
+                    throw new Error('Сервер загрузки вернул пустой ответ');
+                }
+
+                // Извлекаем ID задачи
+                const taskId = uploadResult.trim();
+                if (!taskId) {
+                    throw new Error('Не получен ID задачи от сервера');
+                }
+
+                // Сохраняем ID задачи и логируем в консоль
+                currentTaskId = taskId;
+                console.log(`✅ Видео загружено! ID задачи: ${taskId}`);
+                
+                showStatus('✅ Видео отправлено! Проверяем результат...', 'ready');
+                
+                // Запускаем автоматическую проверку результата
+                startAutoCheck();
+
+            } catch (error) {
+                console.error('Ошибка отправки видео:', error);
+                showStatus(`❌ Ошибка отправки: ${error.message}`, 'error');
+                
+                // Скрываем индикатор прогресса при ошибке
+                hideProgress();
+            } finally {
+                // Кнопка отправки больше не нужна, так как отправка автоматическая
+            }
+        }
+
+        // Показать результаты AI анализа
+        function showResults(result) {
+            const { upper_ap, lower_ap, heart_rate, age, gender, bmi } = result;
+            
+            // Определяем категорию давления
+            let category = 'Нормальное';
+            let categoryColor = '#4caf50';
+            
+            if (upper_ap >= 140 || lower_ap >= 90) {
+                category = 'Повышенное';
+                categoryColor = '#ff9800';
+            } else if (upper_ap >= 160 || lower_ap >= 100) {
+                category = 'Высокое';
+                categoryColor = '#f44336';
+            } else if (upper_ap < 90 || lower_ap < 60) {
+                category = 'Пониженное';
+                categoryColor = '#2196f3';
+            }
+
+            // Создаем HTML для результатов
+            const resultsHTML = `
+                <div class="pressure-card">
+                    <div class="pressure-title">Артериальное давление</div>
+                    
+                    <div class="pressure-values">
+                        <div class="pressure-item">
+                            <div class="pressure-number" style="color: ${categoryColor};">${upper_ap}</div>
+                            <div class="pressure-label">Систолическое (верхнее)</div>
+                        </div>
+                        <div class="pressure-item">
+                            <div class="pressure-number" style="color: ${categoryColor};">${lower_ap}</div>
+                            <div class="pressure-label">Диастолическое (нижнее)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="category-badge" style="background: ${categoryColor};">
+                        ${category}
+                    </div>
+                </div>
+                
+                <div class="additional-info">
+                    <div class="info-item">
+                        <div class="info-icon">💓</div>
+                        <div class="info-value">${heart_rate}</div>
+                        <div class="info-label">Пульс (уд/мин)</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">👤</div>
+                        <div class="info-value">${age}</div>
+                        <div class="info-label">Возраст (лет)</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">⚖️</div>
+                        <div class="info-value">${bmi}</div>
+                        <div class="info-label">ИМТ</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">🚻</div>
+                        <div class="info-value">${gender === 0 ? 'М' : 'Ж'}</div>
+                        <div class="info-label">Пол</div>
+                    </div>
+                </div>
+            `;
+
+            // Показываем секцию результатов
+            resultsContent.innerHTML = resultsHTML;
+            resultsSection.classList.remove('hidden');
+            
+            // Полностью скрываем видео-секцию
+            document.querySelector('.video-section').style.display = 'none';
+            
+            showStatus('✅ Анализ завершен! Результаты показаны!', 'ready');
+        }
+
+        // Функция для начала нового измерения
+        function startNewRecording() {
+            // Скрываем секцию результатов
+            resultsSection.classList.add('hidden');
+            
+            // Возвращаем видео-секцию
+            document.querySelector('.video-section').style.display = 'block';
+            
+            // Сбрасываем состояние
+            currentTaskId = null;
+            recordedChunks = [];
+            
+            // Останавливаем автоматическую проверку результата
+            stopAutoCheck();
+            
+            // Скрываем индикатор прогресса
+            hideProgress();
+            
+            // Возвращаем видео-превью в исходное состояние
+            videoPreview.innerHTML = `
+                <div style="text-align: center; color: #999999;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📹</div>
+                    <div>Нажмите кнопку для съемки</div>
+                    <div style="text-align: 12px; margin-top: 10px; opacity: 0.7;">
+                        Запись автоматически остановится через 10 секунд
+                    </div>
+                </div>
+            `;
+            
+            // Сбрасываем кнопку записи
+            recordButton.disabled = false;
+            recordButton.textContent = '🎥 Начать съемки';
+            
+            showStatus('🚀 Готов к новому измерению!', 'ready');
+        }
+        
+        // Обработчики событий
+        recordButton.addEventListener('click', startRecording);
+        newRecordingBtn.addEventListener('click', startNewRecording);
+
+        // Инициализация
+        
+        showStatus('🚀 Готов к записи видео!', 'ready');
+    </script>
+</body>
+</html>
