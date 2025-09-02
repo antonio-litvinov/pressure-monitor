@@ -49,9 +49,7 @@
                 <div class="video-placeholder">
                     <div class="video-icon">📹</div>
                     <div class="video-text">Нажмите кнопку для съемки</div>
-                    <div class="video-hint">
-                        Запись автоматически остановится через 10 секунд
-                    </div>
+                    <div class="video-hint">Запись автоматически остановится через 10 секунд</div>
                 </div>
             </div>
 
@@ -61,32 +59,32 @@
                 🎥 Начать съемку
             </button>
             
-            <!-- Индикатор прогресса теперь находится в оверлее -->
-            <div class="controls hidden" id="controls">
-                <!-- Автоматический процесс - кнопки не нужны -->
-            </div>
+            <div class="controls hidden" id="controls"></div>
         </div>
         
-        <!-- Блок для результатов -->
         <div class="results-section hidden" id="resultsSection">
             <div class="results-header">
-                <h2>Результаты анализа</h2>
+                <h2 id="resultsHeader">Результаты анализа</h2>
                 <button class="new-recording-btn" id="newRecordingBtn">
                     🎥 Новое измерение
                 </button>
             </div>
-            <div class="results-content" id="resultsContent">
-                <!-- Сюда будут добавляться результаты -->
+            <div class="results-content" id="resultsContent"></div>
+        </div>
+
+        <div class="error-notification hidden" id="errorNotification">
+            <div class="error-content">
+                <div class="error-icon">⚠️</div>
+                <div class="error-message" id="errorMessage"></div>
+                <button class="error-close-btn" id="errorCloseBtn">✕</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Константы
         const VIDEO_MIME_TYPE = 'video/webm';
-        const RECORDING_DURATION = 10; // секунд
+        const RECORDING_DURATION = 2;
         
-        // Конфигурация AI сервера
         const AI_SERVER_CONFIG = {
             baseUrl: 'https://model.pressure-monitor.ru',
             endpoints: {
@@ -98,94 +96,95 @@
         const ERROR_MESSAGES = {
             NotAllowedError: 'Доступ к камере запрещен. Разрешите доступ в настройках браузера.',
             NotFoundError: 'Камера не найдена. Проверьте подключение устройства.',
-            NotReadableError: 'Камера занята другим приложением. Закройте другие приложения.',
+            NotReadableError: 'Камера занята другим приложения. Закройте другие приложения.',
             NotSupportedError: 'Ваш браузер не поддерживает запись видео.',
             OverconstrainedError: 'Камера не поддерживает запрошенные параметры.'
         };
         
-        // Элементы интерфейса
         const videoPreview = document.getElementById('videoPreview');
         const recordButton = document.getElementById('recordButton');
         const timer = document.getElementById('timer');
         const controls = document.getElementById('controls');
-        
-        // Элементы индикатора прогресса (теперь в оверлее)
         const progressTitle = document.getElementById('progressTitle');
         const progressStatus = document.getElementById('progressStatus');
         const progressFill = document.getElementById('progressFill');
-        
-        // Массив шагов для более чистого кода
         const steps = [
             document.getElementById('step1'),
             document.getElementById('step2'),
             document.getElementById('step3'),
             document.getElementById('step4')
         ];
-        
-        // Элементы оверлея
         const loadingOverlay = document.getElementById('loadingOverlay');
-        
-        // Элементы результатов
         const resultsSection = document.getElementById('resultsSection');
         const resultsContent = document.getElementById('resultsContent');
         const newRecordingBtn = document.getElementById('newRecordingBtn');
+        const errorNotification = document.getElementById('errorNotification');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorCloseBtn = document.getElementById('errorCloseBtn');
 
-        let mediaRecorder;
-        let recordedChunks = [];
-        let stream;
-        let timerInterval;
-        let recordingTime = 0;
-        let currentTaskId = null; // ID текущей задачи
-        let resultCheckInterval = null; // Интервал для проверки результата
-        let resultCheckAttempts = 0; // Счетчик попыток проверки
-        const MAX_RESULT_ATTEMPTS = 10; // Максимум попыток
-        const RESULT_CHECK_DELAY = 5000; // 5 секунд между попытками
+        let mediaRecorder, recordedChunks = [], stream, timerInterval;
+        let recordingTime = 0, currentTaskId = null;
+        let resultCheckInterval = null, resultCheckAttempts = 0;
+        const MAX_RESULT_ATTEMPTS = 3, RESULT_CHECK_DELAY = 3000;
         
-        // Константы для шагов прогресса
         const PROGRESS_STEPS = {
-            RECORDING: 1,
-            UPLOADING: 2,
-            ANALYZING: 3,
-            COMPLETED: 4
+            RECORDING: 1, UPLOADING: 2, ANALYZING: 3, COMPLETED: 4
         };
         
-        // Функции для управления индикатором прогресса
         function showProgress() {
-            // Показываем полноэкранный оверлей с прогрессом
             loadingOverlay.classList.remove('hidden');
         }
         
         function hideProgress() {
-            // Скрываем оверлей
             loadingOverlay.classList.add('hidden');
         }
         
-        function updateProgress(step, status, progressPercent) {
-            // Обновляем статус
-            progressStatus.textContent = status;
+        // Функции для управления уведомлениями об ошибках
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorNotification.classList.remove('hidden');
             
-            // Обновляем прогресс-бар
+            // Автоматически скрываем уведомление через 8 секунд
+            setTimeout(hideError, 8000);
+        }
+        
+        function hideError() {
+            errorNotification.classList.add('hidden');
+        }
+        
+        function handleError(error) {
+            console.error('❌ Ошибка:', error.message);
+            
+            return {
+                userMessage: 'Произошла ошибка. Попробуйте еще раз.',
+                userDetails: null
+            };
+        }
+        
+        // Специализированные функции для разных типов ошибок
+        function handleAIError(result) {
+            console.error('❌ AI анализ завершился с ошибкой распознавания:', result);
+            
+            const userMessage = result.message || result.error || 'Не удалось распознать лицо или палец на видео';
+            const userDetails = result.details || 'Возможные причины: плохое освещение, лицо/палец не в кадре, размытое изображение';
+            
+            return { userMessage, userDetails };
+        }
+        
+
+        
+        function updateProgress(step, status, progressPercent) {
+            progressStatus.textContent = status;
             progressFill.style.width = `${progressPercent}%`;
             
-            // Сбрасываем все шаги
-            steps.forEach(stepElement => {
-                stepElement.className = 'step';
+            steps.forEach((stepElement, index) => {
+                stepElement.className = index < step - 1 ? 'step completed' : 
+                                      index === step - 1 ? 'step active' : 'step';
             });
-            
-            // Обновляем активный шаг и завершенные
-            for (let i = 0; i < steps.length; i++) {
-                if (i < step - 1) {
-                    steps[i].className = 'step completed';
-                } else if (i === step - 1) {
-                    steps[i].className = 'step active';
-                }
-            }
         }
 
-        // Автоматическая проверка результата
         async function autoCheckResult() {
             if (!currentTaskId) {
-                console.log('❌ Нет активной задачи для автоматической проверки');
                 return;
             }
 
@@ -214,8 +213,7 @@
                 try {
                     result = JSON.parse(responseText);
                 } catch (parseError) {
-                    console.error('❌ Ошибка парсинга JSON:', parseError);
-                    console.error('📄 Проблемный текст:', responseText);
+                    console.error('❌ Ошибка парсинга JSON:', parseError.message, 'Ответ:', responseText);
                     throw new Error(`Ошибка парсинга JSON: ${parseError.message}. Ответ сервера: "${responseText}"`);
                 }
                 
@@ -235,57 +233,60 @@
                     setTimeout(() => {
                         hideProgress();
                     }, 2000);
+                } else if (result.status === 'fail') {
+                    // Тип 2: Модель не смогла распознать лицо/палец или проблемы с освещением
+                    stopAutoCheck();
+                    hideProgress();
+                    
+                    const { userMessage, userDetails } = handleAIError(result);
+                    showErrorResults(userMessage, userDetails);
                 } else {
                     throw new Error(`Статус обработки не OK: ${result.status}`);
                 }
 
             } catch (error) {
-                console.error(`❌ Ошибка автоматической проверки (попытка ${resultCheckAttempts}):`, error);
+                console.error(`❌ Ошибка автоматической проверки (попытка ${resultCheckAttempts}):`, error.message);
                 
                 if (error.message.includes('Сервер вернул пустой ответ')) {
-                    // Если сервер вернул пустой ответ, продолжаем попытки
                     if (resultCheckAttempts < MAX_RESULT_ATTEMPTS) {
-                        console.log(`⏳ Сервер еще не готов, пробуем через 5 сек...`);
-                        return; // Продолжаем автоматическую проверку
+                        return;
                     } else {
-                        // Достигнут максимум попыток
-                        stopAutoCheck();
+                        // Тип 1: Исчерпаны попытки - модель не возвращает результат
+                        console.error('❌ Превышено количество попыток получения результата:', `${resultCheckAttempts}/${MAX_RESULT_ATTEMPTS} для задачи ${currentTaskId}`);
                         
-                        // Скрываем индикатор прогресса при ошибке
+                        stopAutoCheck();
                         hideProgress();
+                        showErrorResults(
+                            'Модель не смогла обработать видео',
+                            'Возможные причины: видео слишком короткое, плохое качество или технические проблемы на сервере'
+                        );
                     }
                 } else {
-                    // Другие ошибки - останавливаем автоматическую проверку
-                    stopAutoCheck();
+                    // Другие ошибки сети/сервера
+                    console.error('❌ Ошибка сети/сервера при получении результата:', error.message);
                     
-                    // Скрываем индикатор прогресса при ошибке
+                    stopAutoCheck();
                     hideProgress();
+                    showErrorResults(
+                        'Ошибка соединения с сервером',
+                        'Проверьте интернет-соединение и попробуйте еще раз'
+                    );
                 }
             }
         }
 
-        // Запустить автоматическую проверку результата
         function startAutoCheck() {
-            if (resultCheckInterval) {
-                clearInterval(resultCheckInterval);
-            }
-            
+            clearInterval(resultCheckInterval);
             resultCheckAttempts = 0;
             resultCheckInterval = setInterval(autoCheckResult, RESULT_CHECK_DELAY);
-            
-            // Обновляем прогресс - AI анализ
             updateProgress(PROGRESS_STEPS.ANALYZING, 'AI анализирует видео...', 75);
         }
 
-        // Остановить автоматическую проверку результата
         function stopAutoCheck() {
-            if (resultCheckInterval) {
-                clearInterval(resultCheckInterval);
-                resultCheckInterval = null;
-            }
+            clearInterval(resultCheckInterval);
+            resultCheckInterval = null;
         }
 
-        // Обновить таймер
         function updateTimer() {
             const remaining = RECORDING_DURATION - recordingTime;
             if (remaining <= 0) {
@@ -296,7 +297,6 @@
             recordingTime++;
         }
 
-        // Настройка MediaRecorder
         function setupMediaRecorder() {
             mediaRecorder = new MediaRecorder(stream, { mimeType: VIDEO_MIME_TYPE });
             recordedChunks = [];
@@ -310,12 +310,10 @@
             mediaRecorder.onstop = handleRecordingComplete;
         }
         
-        // Обработка завершения записи
         function handleRecordingComplete() {
             const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
             const videoUrl = URL.createObjectURL(blob);
             
-            // Показываем записанное видео
             const recordedVideo = document.createElement('video');
             recordedVideo.src = videoUrl;
             recordedVideo.controls = true;
@@ -326,27 +324,21 @@
             videoPreview.innerHTML = '';
             videoPreview.appendChild(recordedVideo);
             
-            // Останавливаем поток камеры
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
             
-            // Показываем элементы управления
             controls.classList.remove('hidden');
             
-            // Автоматически отправляем видео на анализ
-            setTimeout(() => {
-                sendToAIAnalysis();
-            }, 1000); // Небольшая задержка для лучшего UX
+            setTimeout(sendToAIAnalysis, 1000);
         }
         
-        // Начать/остановить запись
         async function startRecording() {
-            // Если запись уже идет, останавливаем её
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 stopRecording();
                 return;
             }
+            
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
@@ -363,84 +355,55 @@
                 video.muted = true;
                 video.playsInline = true;
                 
-                // Очищаем контейнер и добавляем видео
                 videoPreview.innerHTML = '';
                 videoPreview.appendChild(video);
                 
-                // Сбрасываем состояние при новой записи
                 currentTaskId = null;
-                
-                // Скрываем индикатор прогресса
                 hideProgress();
-                
-                // Останавливаем автоматическую проверку результата
                 stopAutoCheck();
-                
-                // Настройка MediaRecorder
                 setupMediaRecorder();
                 
-                // Начинаем запись
                 mediaRecorder.start();
                 recordingTime = 0;
                 timerInterval = setInterval(updateTimer, 1000);
                 
-                // Обновляем UI
                 recordButton.disabled = true;
                 recordButton.textContent = '⏹️ Остановить запись';
                 timer.classList.remove('hidden');
                 videoPreview.classList.add('recording');
                 
             } catch (error) {
-                console.error('Ошибка доступа к камере:', error);
+                console.error('❌ Ошибка доступа к камере:', error.name, error.message);
                 const errorMessage = ERROR_MESSAGES[error.name] || `Ошибка: ${error.message}`;
-                
-                // Показываем пользователю понятное сообщение об ошибке
-                alert(errorMessage);
-                
-                // Скрываем индикатор прогресса при ошибке
+                showError(errorMessage);
                 hideProgress();
             }
         }
 
-        // Остановить запись
         function stopRecording() {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
             }
             
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
+            clearInterval(timerInterval);
             
-            // Обновляем UI
             recordButton.disabled = false;
-            recordButton.textContent = '🎥 Начать съемку';
+            recordButton.textContent = '🎥 Начать съемки';
             timer.classList.add('hidden');
             videoPreview.classList.remove('recording');
-            
-            // Прогресс не показываем на этапе записи
         }
 
-        // Отправить видео на AI анализ
         async function sendToAIAnalysis() {
-            if (recordedChunks.length === 0) {
-                return;
-            }
+            if (recordedChunks.length === 0) return;
 
             try {
-                // Обновляем прогресс - отправка
                 updateProgress(PROGRESS_STEPS.UPLOADING, 'Отправка видео на сервер...', 50);
-                // Показываем прелоадер
                 showProgress();
-                
-                // Кнопка отправки больше не нужна, так как отправка автоматическая
 
-                // Создаем FormData с видео
                 const formData = new FormData();
                 const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
                 formData.append('file', blob, 'video.webm');
 
-                // Отправляем на AI сервер
                 const uploadResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.upload}`, {
                     method: 'POST',
                     body: formData
@@ -451,43 +414,61 @@
                 }
 
                 const uploadResult = await uploadResponse.text();
-                console.log('📄 Текст ответа загрузки:', uploadResult);
+                console.log('📄 Ответ сервера загрузки:', uploadResult);
                 
-                // Проверяем, не пустой ли ответ
                 if (!uploadResult || uploadResult.trim() === '') {
                     throw new Error('Сервер загрузки вернул пустой ответ');
                 }
 
-                // Извлекаем ID задачи
                 const taskId = uploadResult.trim();
                 if (!taskId) {
                     throw new Error('Не получен ID задачи от сервера');
                 }
 
-                // Сохраняем ID задачи и логируем в консоль
                 currentTaskId = taskId;
-                console.log(`✅ Видео загружено! ID задачи: ${taskId}`);
-                
-                // Запускаем автоматическую проверку результата
+                console.log('✅ Видео загружено, ID задачи:', taskId);
                 startAutoCheck();
 
             } catch (error) {
-                console.error('Ошибка отправки видео:', error);
-                
-                // Скрываем индикатор прогресса при ошибке
+                console.error('❌ Ошибка отправки видео:', error.message);
                 hideProgress();
-            } finally {
-                // Кнопка отправки больше не нужна, так как отправка автоматическая
+                
+                const { userMessage } = handleError(error);
+                showError(userMessage);
             }
         }
 
-        // Показать результаты AI анализа
+        function showErrorResults(errorMessage, errorDetails = null) {
+            document.getElementById('resultsHeader').textContent = 'Ошибка анализа';
+            
+            const errorHTML = `
+                <div class="error-simple">
+                    <h3>⚠️ Ошибка анализа</h3>
+                    <p>${errorMessage}</p>
+                    ${errorDetails ? `<p><strong>Детали:</strong> <span class="error-details-text">${errorDetails}</span></p>` : ''}
+                    <div class="suggestions">
+                        <h4>Рекомендации:</h4>
+                        <ul>
+                            <li>Убедитесь, что палец хорошо виден на видео</li>
+                            <li>Проверьте освещение - должно быть достаточно ярким</li>
+                            <li>Держите камеру стабильно во время записи</li>
+                            <li>Попробуйте записать видео заново</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+
+            resultsContent.innerHTML = errorHTML;
+            resultsSection.classList.remove('hidden');
+            document.querySelector('.video-section').style.display = 'none';
+        }
+
         function showResults(result) {
+            document.getElementById('resultsHeader').textContent = 'Результаты анализа';
+            
             const { upper_ap, lower_ap } = result;
             
-            // Определяем категорию давления
-            let category = 'Нормальное';
-            let categoryColor = '#4caf50';
+            let category = 'Нормальное', categoryColor = '#4caf50';
             
             if (upper_ap >= 140 || lower_ap >= 90) {
                 category = 'Повышенное';
@@ -500,11 +481,9 @@
                 categoryColor = '#2196f3';
             }
 
-            // Создаем HTML для результатов
             const resultsHTML = `
                 <div class="pressure-card">
                     <div class="pressure-title">Артериальное давление</div>
-                    
                     <div class="pressure-values">
                         <div class="pressure-item">
                             <div class="pressure-number" style="color: ${categoryColor};">${upper_ap}</div>
@@ -515,60 +494,45 @@
                             <div class="pressure-label">Диастолическое (нижнее)</div>
                         </div>
                     </div>
-                    
                     <div class="category-badge" style="background: ${categoryColor};">
                         ${category}
                     </div>
                 </div>
             `;
 
-            // Показываем секцию результатов
             resultsContent.innerHTML = resultsHTML;
             resultsSection.classList.remove('hidden');
-            
-            // Полностью скрываем видео-секцию
             document.querySelector('.video-section').style.display = 'none';
         }
 
-        // Функция для начала нового измерения
         function startNewRecording() {
-            // Скрываем секцию результатов
             resultsSection.classList.add('hidden');
-            
-            // Возвращаем видео-секцию
             document.querySelector('.video-section').style.display = 'block';
             
-            // Сбрасываем состояние
             currentTaskId = null;
             recordedChunks = [];
-            
-            // Останавливаем автоматическую проверку результата
             stopAutoCheck();
-            
-            // Скрываем индикатор прогресса
             hideProgress();
             
-            // Возвращаем видео-превью в исходное состояние
             videoPreview.innerHTML = `
                 <div class="video-placeholder">
                     <div class="video-icon">📹</div>
                     <div class="video-text">Нажмите кнопку для съемки</div>
-                    <div class="video-hint">
-                        Запись автоматически остановится через 10 секунд
-                    </div>
+                    <div class="video-hint">Запись автоматически остановится через 10 секунд</div>
                 </div>
             `;
             
-            // Сбрасываем кнопку записи
             recordButton.disabled = false;
             recordButton.textContent = '🎥 Начать съемки';
         }
         
-        // Обработчики событий
         recordButton.addEventListener('click', startRecording);
         newRecordingBtn.addEventListener('click', startNewRecording);
+        errorCloseBtn.addEventListener('click', hideError);
+        
 
-        // Инициализация
+
+
     </script>
 </body>
 </html>
