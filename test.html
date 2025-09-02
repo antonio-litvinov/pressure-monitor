@@ -186,10 +186,6 @@
             }
         }
 
-
-
-
-
         // Автоматическая проверка результата
         async function autoCheckResult() {
             if (!currentTaskId) {
@@ -401,6 +397,9 @@
             } catch (error) {
                 console.error('Ошибка доступа к камере:', error);
                 const errorMessage = ERROR_MESSAGES[error.name] || `Ошибка: ${error.message}`;
+                
+                // Показываем пользователю понятное сообщение об ошибке
+                alert(errorMessage);
                 
                 // Скрываем индикатор прогресса при ошибке
                 hideProgress();
