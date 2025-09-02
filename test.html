@@ -101,19 +101,13 @@
             OverconstrainedError: 'Камера не поддерживает запрошенные параметры.'
         };
         
+        // DOM элементы
         const videoPreview = document.getElementById('videoPreview');
         const recordButton = document.getElementById('recordButton');
         const timer = document.getElementById('timer');
-        const controls = document.getElementById('controls');
         const progressTitle = document.getElementById('progressTitle');
         const progressStatus = document.getElementById('progressStatus');
         const progressFill = document.getElementById('progressFill');
-        const steps = [
-            document.getElementById('step1'),
-            document.getElementById('step2'),
-            document.getElementById('step3'),
-            document.getElementById('step4')
-        ];
         const loadingOverlay = document.getElementById('loadingOverlay');
         const resultsSection = document.getElementById('resultsSection');
         const resultsContent = document.getElementById('resultsContent');
@@ -121,14 +115,33 @@
         const errorNotification = document.getElementById('errorNotification');
         const errorMessage = document.getElementById('errorMessage');
         const errorCloseBtn = document.getElementById('errorCloseBtn');
+        
+        const steps = [
+            document.getElementById('step1'),
+            document.getElementById('step2'),
+            document.getElementById('step3'),
+            document.getElementById('step4')
+        ];
 
+        // Состояние приложения
         let mediaRecorder, recordedChunks = [], stream, timerInterval;
         let recordingTime = 0, currentTaskId = null;
         let resultCheckInterval = null, resultCheckAttempts = 0;
-        const MAX_RESULT_ATTEMPTS = 3, RESULT_CHECK_DELAY = 3000;
         
+        // Константы
+        const MAX_RESULT_ATTEMPTS = 3;
+        const RESULT_CHECK_DELAY = 3000;
         const PROGRESS_STEPS = {
-            RECORDING: 1, UPLOADING: 2, ANALYZING: 3, COMPLETED: 4
+            RECORDING: 1,
+            UPLOADING: 2, 
+            ANALYZING: 3,
+            COMPLETED: 4
+        };
+        
+        const TIMEOUTS = {
+            ERROR_NOTIFICATION: 8000,
+            PROGRESS_HIDE: 2000,
+            UPLOAD_DELAY: 1000
         };
         
         function showProgress() {
@@ -139,13 +152,11 @@
             loadingOverlay.classList.add('hidden');
         }
         
-        // Функции для управления уведомлениями об ошибках
+        // Управление ошибками
         function showError(message) {
             errorMessage.textContent = message;
             errorNotification.classList.remove('hidden');
-            
-            // Автоматически скрываем уведомление через 8 секунд
-            setTimeout(hideError, 8000);
+            setTimeout(hideError, TIMEOUTS.ERROR_NOTIFICATION);
         }
         
         function hideError() {
@@ -161,7 +172,6 @@
             };
         }
         
-        // Специализированные функции для разных типов ошибок
         function handleAIError(result) {
             console.error('❌ AI анализ завершился с ошибкой распознавания:', result);
             
@@ -171,107 +181,99 @@
             return { userMessage, userDetails };
         }
         
-
-        
+        // Управление прогрессом
         function updateProgress(step, status, progressPercent) {
             progressStatus.textContent = status;
             progressFill.style.width = `${progressPercent}%`;
             
             steps.forEach((stepElement, index) => {
-                stepElement.className = index < step - 1 ? 'step completed' : 
-                                      index === step - 1 ? 'step active' : 'step';
+                let stepClass = 'step';
+                
+                if (index < step - 1) {
+                    stepClass += ' completed';
+                } else if (index === step - 1) {
+                    stepClass += ' active';
+                }
+                
+                stepElement.className = stepClass;
             });
         }
-
+        
+        // AI анализ и получение результатов
         async function autoCheckResult() {
-            if (!currentTaskId) {
-                return;
-            }
+            if (!currentTaskId) return;
 
             try {
                 resultCheckAttempts++;
                 console.log(`🔍 Попытка ${resultCheckAttempts}/${MAX_RESULT_ATTEMPTS} для задачи ${currentTaskId}`);
                 
-                const resultResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.result}/${currentTaskId}`, {
-                    method: 'GET'
-                });
+                const result = await fetchAndParseResult();
+                await handleAIResult(result);
                 
-                if (!resultResponse.ok) {
-                    throw new Error(`HTTP ${resultResponse.status}: ${resultResponse.statusText}`);
-                }
-
-                // Получаем текст ответа
-                const responseText = await resultResponse.text();
-                
-                // Проверяем, не пустой ли ответ
-                if (!responseText || responseText.trim() === '') {
-                    throw new Error('Сервер вернул пустой ответ');
-                }
-                
-                // Пытаемся распарсить JSON
-                let result;
-                try {
-                    result = JSON.parse(responseText);
-                } catch (parseError) {
-                    console.error('❌ Ошибка парсинга JSON:', parseError.message, 'Ответ:', responseText);
-                    throw new Error(`Ошибка парсинга JSON: ${parseError.message}. Ответ сервера: "${responseText}"`);
-                }
-                
-                console.log('✅ Результат AI анализа получен:', result);
-
-                if (result.status === 'ok') {
-                    // Останавливаем автоматическую проверку
-                    stopAutoCheck();
-                    
-                    // Обновляем прогресс - завершение
-                    updateProgress(PROGRESS_STEPS.COMPLETED, 'Результат готов!', 100);
-                    
-                    // Показываем результаты
-                    showResults(result);
-                    
-                    // Скрываем индикатор прогресса через 2 секунды
-                    setTimeout(() => {
-                        hideProgress();
-                    }, 2000);
-                } else if (result.status === 'fail') {
-                    // Тип 2: Модель не смогла распознать лицо/палец или проблемы с освещением
-                    stopAutoCheck();
-                    hideProgress();
-                    
-                    const { userMessage, userDetails } = handleAIError(result);
-                    showErrorResults(userMessage, userDetails);
-                } else {
-                    throw new Error(`Статус обработки не OK: ${result.status}`);
-                }
-
             } catch (error) {
-                console.error(`❌ Ошибка автоматической проверки (попытка ${resultCheckAttempts}):`, error.message);
+                await handleCheckError(error);
+            }
+        }
+        
+        async function fetchAndParseResult() {
+            const resultResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.result}/${currentTaskId}`);
+            
+            if (!resultResponse.ok) {
+                throw new Error(`HTTP ${resultResponse.status}: ${resultResponse.statusText}`);
+            }
+
+            const responseText = await resultResponse.text();
+            if (!responseText || responseText.trim() === '') {
+                throw new Error('Сервер вернул пустой ответ');
+            }
+            
+            try {
+                return JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('❌ Ошибка парсинга JSON:', parseError.message, 'Ответ:', responseText);
+                throw new Error(`Ошибка парсинга JSON: ${parseError.message}. Ответ сервера: "${responseText}"`);
+            }
+        }
+        
+        async function handleAIResult(result) {
+            console.log('✅ Результат AI анализа получен:', result);
+
+            if (result.status === 'ok') {
+                stopAutoCheck();
+                updateProgress(PROGRESS_STEPS.COMPLETED, 'Результат готов!', 100);
+                showResults(result);
+                setTimeout(hideProgress, TIMEOUTS.PROGRESS_HIDE);
+            } else if (result.status === 'fail') {
+                stopAutoCheck();
+                hideProgress();
+                const { userMessage, userDetails } = handleAIError(result);
+                showErrorResults(userMessage, userDetails);
+            } else {
+                throw new Error(`Статус обработки не OK: ${result.status}`);
+            }
+        }
+        
+        async function handleCheckError(error) {
+            console.error(`❌ Ошибка автоматической проверки (попытка ${resultCheckAttempts}):`, error.message);
+            
+            if (error.message.includes('Сервер вернул пустой ответ')) {
+                if (resultCheckAttempts < MAX_RESULT_ATTEMPTS) return;
                 
-                if (error.message.includes('Сервер вернул пустой ответ')) {
-                    if (resultCheckAttempts < MAX_RESULT_ATTEMPTS) {
-                        return;
-                    } else {
-                        // Тип 1: Исчерпаны попытки - модель не возвращает результат
-                        console.error('❌ Превышено количество попыток получения результата:', `${resultCheckAttempts}/${MAX_RESULT_ATTEMPTS} для задачи ${currentTaskId}`);
-                        
-                        stopAutoCheck();
-                        hideProgress();
-                        showErrorResults(
-                            'Модель не смогла обработать видео',
-                            'Возможные причины: видео слишком короткое, плохое качество или технические проблемы на сервере'
-                        );
-                    }
-                } else {
-                    // Другие ошибки сети/сервера
-                    console.error('❌ Ошибка сети/сервера при получении результата:', error.message);
-                    
-                    stopAutoCheck();
-                    hideProgress();
-                    showErrorResults(
-                        'Ошибка соединения с сервером',
-                        'Проверьте интернет-соединение и попробуйте еще раз'
-                    );
-                }
+                console.error('❌ Превышено количество попыток получения результата:', `${resultCheckAttempts}/${MAX_RESULT_ATTEMPTS} для задачи ${currentTaskId}`);
+                stopAutoCheck();
+                hideProgress();
+                showErrorResults(
+                    'Модель не смогла обработать видео',
+                    'Возможные причины: видео слишком короткое, плохое качество или технические проблемы на сервере'
+                );
+            } else {
+                console.error('❌ Ошибка сети/сервера при получении результата:', error.message);
+                stopAutoCheck();
+                hideProgress();
+                showErrorResults(
+                    'Ошибка соединения с сервером',
+                    'Проверьте интернет-соединение и попробуйте еще раз'
+                );
             }
         }
 
@@ -296,7 +298,8 @@
             timer.textContent = `⏱️ Осталось: ${remaining} сек`;
             recordingTime++;
         }
-
+        
+        // Запись видео
         function setupMediaRecorder() {
             mediaRecorder = new MediaRecorder(stream, { mimeType: VIDEO_MIME_TYPE });
             recordedChunks = [];
@@ -311,6 +314,15 @@
         }
         
         function handleRecordingComplete() {
+            const recordedVideo = createRecordedVideo();
+            videoPreview.innerHTML = '';
+            videoPreview.appendChild(recordedVideo);
+            
+            stopCameraStream();
+            setTimeout(sendToAIAnalysis, TIMEOUTS.UPLOAD_DELAY);
+        }
+        
+        function createRecordedVideo() {
             const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
             const videoUrl = URL.createObjectURL(blob);
             
@@ -321,16 +333,13 @@
             recordedVideo.muted = true;
             recordedVideo.className = 'recorded-video';
             
-            videoPreview.innerHTML = '';
-            videoPreview.appendChild(recordedVideo);
-            
+            return recordedVideo;
+        }
+        
+        function stopCameraStream() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
-            
-            controls.classList.remove('hidden');
-            
-            setTimeout(sendToAIAnalysis, 1000);
         }
         
         async function startRecording() {
@@ -340,37 +349,9 @@
             }
             
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        width: { ideal: 1280 }, 
-                        height: { ideal: 720 },
-                        facingMode: 'user'
-                    }, 
-                    audio: false 
-                });
-                
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.autoplay = true;
-                video.muted = true;
-                video.playsInline = true;
-                
-                videoPreview.innerHTML = '';
-                videoPreview.appendChild(video);
-                
-                currentTaskId = null;
-                hideProgress();
-                stopAutoCheck();
-                setupMediaRecorder();
-                
-                mediaRecorder.start();
-                recordingTime = 0;
-                timerInterval = setInterval(updateTimer, 1000);
-                
-                recordButton.disabled = true;
-                recordButton.textContent = '⏹️ Остановить запись';
-                timer.classList.remove('hidden');
-                videoPreview.classList.add('recording');
+                stream = await getCameraStream();
+                setupVideoPreview();
+                startRecordingProcess();
                 
             } catch (error) {
                 console.error('❌ Ошибка доступа к камере:', error.name, error.message);
@@ -378,6 +359,44 @@
                 showError(errorMessage);
                 hideProgress();
             }
+        }
+        
+        async function getCameraStream() {
+            return await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 1280 }, 
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                }, 
+                audio: false 
+            });
+        }
+        
+        function setupVideoPreview() {
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.muted = true;
+            video.playsInline = true;
+            
+            videoPreview.innerHTML = '';
+            videoPreview.appendChild(video);
+        }
+        
+        function startRecordingProcess() {
+            currentTaskId = null;
+            hideProgress();
+            stopAutoCheck();
+            setupMediaRecorder();
+            
+            mediaRecorder.start();
+            recordingTime = 0;
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            recordButton.disabled = true;
+            recordButton.textContent = '⏹️ Остановить запись';
+            timer.classList.remove('hidden');
+            videoPreview.classList.add('recording');
         }
 
         function stopRecording() {
@@ -400,31 +419,7 @@
                 updateProgress(PROGRESS_STEPS.UPLOADING, 'Отправка видео на сервер...', 50);
                 showProgress();
 
-                const formData = new FormData();
-                const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
-                formData.append('file', blob, 'video.webm');
-
-                const uploadResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.upload}`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!uploadResponse.ok) {
-                    throw new Error(`HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`);
-                }
-
-                const uploadResult = await uploadResponse.text();
-                console.log('📄 Ответ сервера загрузки:', uploadResult);
-                
-                if (!uploadResult || uploadResult.trim() === '') {
-                    throw new Error('Сервер загрузки вернул пустой ответ');
-                }
-
-                const taskId = uploadResult.trim();
-                if (!taskId) {
-                    throw new Error('Не получен ID задачи от сервера');
-                }
-
+                const taskId = await uploadVideo();
                 currentTaskId = taskId;
                 console.log('✅ Видео загружено, ID задачи:', taskId);
                 startAutoCheck();
@@ -432,12 +427,41 @@
             } catch (error) {
                 console.error('❌ Ошибка отправки видео:', error.message);
                 hideProgress();
-                
                 const { userMessage } = handleError(error);
                 showError(userMessage);
             }
         }
+        
+        async function uploadVideo() {
+            const formData = new FormData();
+            const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
+            formData.append('file', blob, 'video.webm');
 
+            const uploadResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.upload}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error(`HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`);
+            }
+
+            const uploadResult = await uploadResponse.text();
+            console.log('📄 Ответ сервера загрузки:', uploadResult);
+            
+            if (!uploadResult || uploadResult.trim() === '') {
+                throw new Error('Сервер загрузки вернул пустой ответ');
+            }
+
+            const taskId = uploadResult.trim();
+            if (!taskId) {
+                throw new Error('Не получен ID задачи от сервера');
+            }
+
+            return taskId;
+        }
+        
+        // Отображение результатов
         function showErrorResults(errorMessage, errorDetails = null) {
             document.getElementById('resultsHeader').textContent = 'Ошибка анализа';
             
@@ -467,34 +491,22 @@
             document.getElementById('resultsHeader').textContent = 'Результаты анализа';
             
             const { upper_ap, lower_ap } = result;
-            
-            let category = 'Нормальное', categoryColor = '#4caf50';
-            
-            if (upper_ap >= 140 || lower_ap >= 90) {
-                category = 'Повышенное';
-                categoryColor = '#ff9800';
-            } else if (upper_ap >= 160 || lower_ap >= 100) {
-                category = 'Высокое';
-                categoryColor = '#f44336';
-            } else if (upper_ap < 90 || lower_ap < 60) {
-                category = 'Пониженное';
-                categoryColor = '#2196f3';
-            }
+            const { category } = getPressureCategory(upper_ap, lower_ap);
 
             const resultsHTML = `
                 <div class="pressure-card">
                     <div class="pressure-title">Артериальное давление</div>
                     <div class="pressure-values">
                         <div class="pressure-item">
-                            <div class="pressure-number" style="color: ${categoryColor};">${upper_ap}</div>
+                            <div class="pressure-number pressure-${category.toLowerCase()}">${upper_ap}</div>
                             <div class="pressure-label">Систолическое (верхнее)</div>
                         </div>
                         <div class="pressure-item">
-                            <div class="pressure-number" style="color: ${categoryColor};">${lower_ap}</div>
+                            <div class="pressure-number pressure-${category.toLowerCase()}">${lower_ap}</div>
                             <div class="pressure-label">Диастолическое (нижнее)</div>
                         </div>
                     </div>
-                    <div class="category-badge" style="background: ${categoryColor};">
+                    <div class="category-badge category-${category.toLowerCase()}">
                         ${category}
                     </div>
                 </div>
@@ -503,6 +515,18 @@
             resultsContent.innerHTML = resultsHTML;
             resultsSection.classList.remove('hidden');
             document.querySelector('.video-section').style.display = 'none';
+        }
+        
+        function getPressureCategory(upper_ap, lower_ap) {
+            if (upper_ap >= 140 || lower_ap >= 90) {
+                return { category: 'Повышенное', categoryColor: '#ff9800' };
+            } else if (upper_ap >= 160 || lower_ap >= 100) {
+                return { category: 'Высокое', categoryColor: '#f44336' };
+            } else if (upper_ap < 90 || lower_ap < 60) {
+                return { category: 'Пониженное', categoryColor: '#2196f3' };
+            } else {
+                return { category: 'Нормальное', categoryColor: '#4caf50' };
+            }
         }
 
         function startNewRecording() {
@@ -526,6 +550,7 @@
             recordButton.textContent = '🎥 Начать съемки';
         }
         
+        // Event listeners
         recordButton.addEventListener('click', startRecording);
         newRecordingBtn.addEventListener('click', startNewRecording);
         errorCloseBtn.addEventListener('click', hideError);
