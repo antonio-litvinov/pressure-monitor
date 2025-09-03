@@ -639,6 +639,23 @@ body {
     .additional-info {
         grid-template-columns: 1fr;
     }
+    
+    .error-notification {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        transform: none;
+        width: auto;
+        max-width: none;
+    }
+    
+    .error-content {
+        padding: 12px 16px;
+    }
+    
+    .error-message {
+        font-size: 13px;
+    }
 }
 
 /* ===== VIDEO STYLES ===== */
@@ -709,38 +726,7 @@ body {
     font-size: 12px;
 }
 
-/* Адаптивность для карточек ошибок */
-@media (max-width: 768px) {
-    .error-card {
-        padding: 20px;
-    }
-    
-    .error-message-main {
-        font-size: 16px;
-    }
-    
-    .error-icon-large {
-        font-size: 40px;
-    }
-}
 
-@media (max-width: 480px) {
-    .error-card {
-        padding: 16px;
-    }
-    
-    .error-message-main {
-        font-size: 15px;
-    }
-    
-    .error-icon-large {
-        font-size: 36px;
-    }
-    
-    .suggestion-list li {
-        font-size: 13px;
-    }
-}
 
 /* ===== ERROR NOTIFICATIONS ===== */
 .error-notification {
@@ -809,22 +795,4 @@ body {
     }
 }
 
-/* Адаптивность для уведомлений об ошибках */
-@media (max-width: 480px) {
-    .error-notification {
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        transform: none;
-        width: auto;
-        max-width: none;
-    }
-    
-    .error-content {
-        padding: 12px 16px;
-    }
-    
-    .error-message {
-        font-size: 13px;
-    }
-}
+
