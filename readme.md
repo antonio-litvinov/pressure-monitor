@@ -1,5 +1,5 @@
 ### Установка Docker
-
+```bash
 sudo apt update 
 sudo apt install apt-transport-https ca-certificates curl software-properties-common 
 
@@ -11,13 +11,14 @@ sudo apt install docker-ce
 sudo systemctl status docker
 
 sudo usermod -aG docker $USER
+```
 
 ### Запуск docker образа
 
-Загрузить скаченный образ из архива командой `docker load -i ws_gigadoc_cpu.tar.gz`
-Скопировать папку ws_adapter на сервер
-Запустить docker compose build
-Поднять контейнеры docker compose up -d
+1. Загрузить скаченный образ из архива командой `docker load -i ws_gigadoc_cpu.tar.gz`
+2. Скопировать папку ws_adapter на сервер
+3. Запустить `docker compose build`
+4. Поднять контейнеры `docker compose up -d`
 
 ### Установка необходимых пакетов
 ```bash
@@ -60,8 +61,6 @@ sudo nginx -t
 sudo systemctl start nginx
 sudo systemctl enable nginx
 ```
-
-Настроить А-записи
 
 ### Получение сертификата Let's Encrypt
 ```bash
