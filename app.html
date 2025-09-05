@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Цифровой тонометр - AI версия</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=1.0.1">
 </head>
 <body>
     <div class="container">
@@ -48,8 +51,8 @@
             <div class="video-preview" id="videoPreview">
                 <div class="video-placeholder">
                     <div class="video-icon">📹</div>
-                    <div class="video-text">Нажмите кнопку для съемки</div>
-                    <div class="video-hint">Запись автоматически остановится через 10 секунд</div>
+                    <div class="video-text">Подготовка камеры...</div>
+                    <div class="video-hint">Нажмите "Начать запись" когда будете готовы</div>
                 </div>
             </div>
 
@@ -390,14 +393,8 @@
             setTimeout(sendToAIAnalysis, 1000);
         }
         
-        // Начинает запись видео с камеры пользователя
-        async function startRecording() {
-            // Если уже идет запись, останавливаем её
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                stopRecording();
-                return;
-            }
-            
+        // Инициализирует камеру при загрузке страницы
+        async function initializeCamera() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
@@ -417,25 +414,53 @@
                 videoPreview.innerHTML = '';
                 videoPreview.appendChild(video);
                 
-                currentTaskId = null;
-                hideProgress();
-                stopAutoCheck();
                 setupMediaRecorder();
                 
-                mediaRecorder.start();
-                recordingTime = 0;
-                timerInterval = setInterval(updateTimer, 1000);
+                // Обновляем текст кнопки
+                recordButton.textContent = '🎥 Начать запись';
+                recordButton.disabled = false;
                 
-                recordButton.disabled = true;
-                recordButton.textContent = '⏹️ Остановить запись';
-                timer.classList.remove('hidden');
-                videoPreview.classList.add('recording');
+                console.log('✅ Камера инициализирована');
                 
             } catch (error) {
                 console.error('❌ Ошибка доступа к камере:', error.name, error.message);
                 const errorMessage = ERROR_MESSAGES[error.name] || `Ошибка: ${error.message}`;
                 showError(errorMessage);
+            }
+        }
+
+        // Начинает запись видео
+        async function startRecording() {
+            // Если уже идет запись, игнорируем нажатие
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                return;
+            }
+            
+            // Проверяем, что камера инициализирована
+            if (!stream) {
+                await initializeCamera();
+                return;
+            }
+            
+            try {
+                currentTaskId = null;
                 hideProgress();
+                stopAutoCheck();
+                
+                mediaRecorder.start();
+                recordingTime = 0;
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                // Делаем кнопку неактивной и показываем статус записи
+                recordButton.disabled = true;
+                recordButton.textContent = '🎥 Идет запись...';
+                recordButton.classList.add('recording');
+                timer.classList.remove('hidden');
+                videoPreview.classList.add('recording');
+                
+            } catch (error) {
+                console.error('❌ Ошибка начала записи:', error.message);
+                showError('Ошибка начала записи. Попробуйте еще раз.');
             }
         }
 
@@ -449,6 +474,7 @@
             
             recordButton.disabled = false;
             recordButton.textContent = '🎥 Начать запись';
+            recordButton.classList.remove('recording');
             timer.classList.add('hidden');
             videoPreview.classList.remove('recording');
         }
@@ -578,21 +604,43 @@
             stopAutoCheck();
             hideProgress();
             
+            // Останавливаем предыдущий поток камеры
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // Показываем заглушку и инициализируем камеру заново
             videoPreview.innerHTML = `
                 <div class="video-placeholder">
                     <div class="video-icon">📹</div>
-                    <div class="video-text">Нажмите кнопку для съемки</div>
-                    <div class="video-hint">Запись автоматически остановится через 10 секунд</div>
+                    <div class="video-text">Подготовка камеры...</div>
+                    <div class="video-hint">Нажмите "Начать запись" когда будете готовы</div>
                 </div>
             `;
             
-            recordButton.disabled = false;
-            recordButton.textContent = '🎥 Начать запись';
+            recordButton.disabled = true;
+            recordButton.textContent = '🎥 Подготовка...';
+            
+            // Инициализируем камеру заново
+            initializeCamera();
         }
         
         recordButton.addEventListener('click', startRecording);
         newRecordingBtn.addEventListener('click', startNewRecording);
         errorCloseBtn.addEventListener('click', hideError);
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Обновление CSS
+            const link = document.querySelector('link[href*="styles.css"]');
+            if (link) {
+                link.href = link.href.split('?')[0] + '?v=' + Date.now();
+            }
+            
+            // Инициализация камеры
+            initializeCamera();
+        });
 
     </script>
 </body>
