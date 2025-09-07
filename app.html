@@ -87,8 +87,27 @@
     <script>
         // ===== КОНСТАНТЫ КОНФИГУРАЦИИ =====
         
-        // Формат видео для записи (WebM поддерживается большинством браузеров)
-        const VIDEO_MIME_TYPE = 'video/webm';
+        // Определяем поддерживаемый формат видео
+        function getSupportedVideoMimeType() {
+            const types = [
+                'video/mp4; codecs="avc1.42E01E"',  // MP4 с H.264 - лучшая поддержка iOS
+                'video/mp4',                         // MP4 без codecs
+                'video/webm; codecs="vp8"',          // WebM с VP8
+                'video/webm'                         // WebM без codecs
+            ];
+            
+            for (const type of types) {
+                if (MediaRecorder.isTypeSupported(type)) {
+                    console.log('✅ Поддерживаемый MIME type:', type);
+                    return type;
+                }
+            }
+            
+            console.warn('⚠️ MediaRecorder не поддерживается в этом браузере');
+            return null;
+        }
+        
+        const VIDEO_MIME_TYPE = getSupportedVideoMimeType();
         
         // Длительность записи видео в секундах
         const RECORDING_DURATION = 10;
@@ -102,13 +121,34 @@
             }
         };
         
+        // Проверяем поддержку MediaRecorder API
+        function checkMediaRecorderSupport() {
+            if (typeof MediaRecorder === 'undefined') {
+                return {
+                    supported: false,
+                    message: 'MediaRecorder API не поддерживается в этом браузере. Обновите браузер или используйте Safari на iOS 14.3+'
+                };
+            }
+            
+            if (!VIDEO_MIME_TYPE) {
+                return {
+                    supported: false,
+                    message: 'Запись видео не поддерживается в этом браузере. Используйте Safari на iOS 14.3+ или Chrome/Firefox'
+                };
+            }
+            
+            return { supported: true, message: null };
+        }
+        
         // Сообщения об ошибках доступа к камере для разных типов ошибок
         const ERROR_MESSAGES = {
             NotAllowedError: 'Доступ к камере запрещен. Разрешите доступ в настройках браузера.',
             NotFoundError: 'Камера не найдена. Проверьте подключение устройства.',
-            NotReadableError: 'Камера занята другим приложения. Закройте другие приложения.',
+            NotReadableError: 'Камера недоступна. Закройте другие приложения, использующие камеру.',
             NotSupportedError: 'Ваш браузер не поддерживает запись видео.',
-            OverconstrainedError: 'Камера не поддерживает запрошенные параметры.'
+            OverconstrainedError: 'Камера не поддерживает запрошенные параметры.',
+            SecurityError: 'Ошибка безопасности. Убедитесь, что сайт работает по HTTPS.',
+            AbortError: 'Операция была прервана. Попробуйте еще раз.'
         };
 
         const videoPreview = document.getElementById('videoPreview');
@@ -350,18 +390,44 @@
 
         // Настраивает MediaRecorder для записи видео
         function setupMediaRecorder() {
-            mediaRecorder = new MediaRecorder(stream, { mimeType: VIDEO_MIME_TYPE });
-            recordedChunks = [];
+            if (!VIDEO_MIME_TYPE) {
+                showError('Запись видео не поддерживается в этом браузере');
+                return;
+            }
             
-            // Сохраняем данные видео по мере их поступления
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    recordedChunks.push(event.data);
-                }
-            };
-            
-            // Обрабатываем завершение записи
-            mediaRecorder.onstop = handleRecordingComplete;
+            try {
+                // Настройки MediaRecorder с учетом iOS
+                const options = {
+                    mimeType: VIDEO_MIME_TYPE,
+                    videoBitsPerSecond: 2500000  // 2.5 Mbps для лучшего качества на iOS
+                };
+                
+                mediaRecorder = new MediaRecorder(stream, options);
+                recordedChunks = [];
+                
+                // Сохраняем данные видео по мере их поступления
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                        console.log('📹 Получен фрагмент видео:', event.data.size, 'байт');
+                    }
+                };
+                
+                // Обрабатываем ошибки записи
+                mediaRecorder.onerror = (event) => {
+                    console.error('❌ Ошибка MediaRecorder:', event.error);
+                    showError('Ошибка записи видео. Попробуйте еще раз.');
+                };
+                
+                // Обрабатываем завершение записи
+                mediaRecorder.onstop = handleRecordingComplete;
+                
+                console.log('✅ MediaRecorder настроен с MIME type:', VIDEO_MIME_TYPE);
+                
+            } catch (error) {
+                console.error('❌ Ошибка настройки MediaRecorder:', error.message);
+                showError('Ошибка настройки записи видео. Ваш браузер может не поддерживать эту функцию.');
+            }
         }
         
         // Обрабатывает завершение записи видео
@@ -396,20 +462,48 @@
         // Инициализирует камеру при загрузке страницы
         async function initializeCamera() {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        width: { ideal: 1280 }, 
-                        height: { ideal: 720 },
-                        facingMode: 'user'
-                    }, 
-                    audio: false 
-                });
+                // Проверяем поддержку MediaRecorder перед инициализацией камеры
+                const supportCheck = checkMediaRecorderSupport();
+                if (!supportCheck.supported) {
+                    showError(supportCheck.message);
+                    return;
+                }
+                
+                // Проверяем HTTPS для iOS
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                    showError('Для работы с камерой требуется HTTPS. Пожалуйста, откройте сайт по адресу https://...');
+                    return;
+                }
+                
+                // Настройки камеры с учетом ограничений iOS
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280, max: 1920 },
+                        height: { ideal: 720, max: 1080 },
+                        facingMode: 'user',
+                        frameRate: { ideal: 30, max: 60 }
+                    },
+                    audio: false
+                };
+                
+                // Пробуем получить доступ к камере
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
                 
                 const video = document.createElement('video');
                 video.srcObject = stream;
                 video.autoplay = true;
                 video.muted = true;
                 video.playsInline = true;
+                video.controls = false;
+                
+                // Обработчики событий для iOS
+                video.addEventListener('loadedmetadata', () => {
+                    console.log('✅ Видео метаданные загружены');
+                });
+                
+                video.addEventListener('canplay', () => {
+                    console.log('✅ Видео готово к воспроизведению');
+                });
                 
                 videoPreview.innerHTML = '';
                 videoPreview.appendChild(video);
@@ -424,7 +518,14 @@
                 
             } catch (error) {
                 console.error('❌ Ошибка доступа к камере:', error.name, error.message);
-                const errorMessage = ERROR_MESSAGES[error.name] || `Ошибка: ${error.message}`;
+                
+                // Специальная обработка для iOS Safari
+                let errorMessage = ERROR_MESSAGES[error.name] || `Ошибка: ${error.message}`;
+                
+                if (error.name === 'NotSupportedError' || error.name === 'NotAllowedError') {
+                    errorMessage = 'Ваш браузер не поддерживает запись видео. Используйте Safari на iOS 14.3+ или обновите браузер.';
+                }
+                
                 showError(errorMessage);
             }
         }
@@ -436,10 +537,25 @@
                 return;
             }
             
+            // Проверяем поддержку MediaRecorder
+            if (!VIDEO_MIME_TYPE) {
+                showError('Запись видео не поддерживается в этом браузере');
+                return;
+            }
+            
             // Проверяем, что камера инициализирована
             if (!stream) {
                 await initializeCamera();
                 return;
+            }
+            
+            // Проверяем, что MediaRecorder настроен
+            if (!mediaRecorder) {
+                setupMediaRecorder();
+                if (!mediaRecorder) {
+                    showError('Не удалось настроить запись видео');
+                    return;
+                }
             }
             
             try {
@@ -447,7 +563,11 @@
                 hideProgress();
                 stopAutoCheck();
                 
-                mediaRecorder.start();
+                // Очищаем предыдущие фрагменты
+                recordedChunks = [];
+                
+                // Начинаем запись с интервалом для iOS
+                mediaRecorder.start(1000); // Записываем фрагменты каждую секунду
                 recordingTime = 0;
                 timerInterval = setInterval(updateTimer, 1000);
                 
@@ -458,9 +578,21 @@
                 timer.classList.remove('hidden');
                 videoPreview.classList.add('recording');
                 
+                console.log('✅ Запись видео начата');
+                
             } catch (error) {
                 console.error('❌ Ошибка начала записи:', error.message);
-                showError('Ошибка начала записи. Попробуйте еще раз.');
+                
+                // Специальные сообщения для разных типов ошибок
+                let errorMessage = 'Ошибка начала записи. Попробуйте еще раз.';
+                
+                if (error.name === 'InvalidStateError') {
+                    errorMessage = 'MediaRecorder не готов к записи. Попробуйте еще раз.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage = 'Запись видео не поддерживается. Используйте Safari на iOS 14.3+';
+                }
+                
+                showError(errorMessage);
             }
         }
 
@@ -636,6 +768,23 @@
             const link = document.querySelector('link[href*="styles.css"]');
             if (link) {
                 link.href = link.href.split('?')[0] + '?v=' + Date.now();
+            }
+            
+            // Проверяем поддержку браузера
+            const supportCheck = checkMediaRecorderSupport();
+            if (!supportCheck.supported) {
+                showError(supportCheck.message);
+                recordButton.disabled = true;
+                recordButton.textContent = '❌ Не поддерживается';
+                return;
+            }
+            
+            // Проверяем HTTPS
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                showError('Для работы с камерой требуется HTTPS. Пожалуйста, откройте сайт по адресу https://...');
+                recordButton.disabled = true;
+                recordButton.textContent = '❌ Требуется HTTPS';
+                return;
             }
             
             // Инициализация камеры
