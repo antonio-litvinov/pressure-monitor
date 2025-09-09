@@ -1,3 +1,5 @@
+sudo passwd ubuntu
+
 ### Установка Docker
 ```bash
 sudo apt update 
