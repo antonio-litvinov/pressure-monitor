@@ -1,3 +1,19 @@
+:root {
+    --primary-gradient: linear-gradient(135deg, #3b82f6, #10b981);
+    --primary-gradient-light: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.08));
+    --primary-gradient-recording: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.12));
+    --error-gradient: linear-gradient(135deg, #ff4444, #ff6b6b);
+    --warning-gradient: linear-gradient(135deg, #ff9800, #ffc107);
+    --primary-blue: #3b82f6;
+    --primary-green: #10b981;
+    --text-primary: #1a1a1a;
+    --text-secondary: #64748b;
+    --text-muted: #6c757d;
+    --border-light: #f0f0f0;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-primary: rgba(59, 130, 246, 0.15);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -7,7 +23,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #ffffff;
-    color: #1a1a1a;
+    color: var(--text-primary);
     padding: 20px;
     line-height: 1.6;
 }
@@ -15,7 +31,7 @@ body {
 .app-title {
     font-size: 24px;
     font-weight: 700;
-    background: linear-gradient(135deg, #3b82f6, #10b981);
+    background: var(--primary-gradient);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -24,7 +40,7 @@ body {
 
 .app-subtitle {
     font-size: 14px;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 400;
 }
 
@@ -37,11 +53,11 @@ body {
     text-align: center;
     margin-bottom: 30px;
     padding: 20px 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .video-section {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.08));
+    background: var(--primary-gradient-light);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 20px;
@@ -51,16 +67,16 @@ body {
 }
 
 .video-section.recording {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.12));
+    background: var(--primary-gradient-recording);
     border-color: rgba(59, 130, 246, 0.4);
-    animation: pulseSection 2s infinite;
+    animation: pulseSection 2s infinite, pulse 1s infinite;
 }
 
 .video-preview {
     width: 100%;
     height: 400px;
     background: #ffffff;
-    border: 2px dashed #2e7bff;
+    border: 1px solid #cccccc;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -69,18 +85,6 @@ body {
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
-}
-
-.video-preview:hover {
-    border-color: #4caf50;
-    transform: scale(1.02);
-}
-
-.video-preview.recording {
-    border-color: #3b82f6;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.08));
-    animation: pulseRecording 2s infinite;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
 .video-preview video {
@@ -112,7 +116,7 @@ body {
 }
 
 .record-button {
-    background: linear-gradient(135deg, #3b82f6, #10b981);
+    background: var(--primary-gradient);
     border: none;
     padding: 16px;
     border-radius: 16px;
@@ -121,7 +125,7 @@ body {
     color: #ffffff;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 25px var(--shadow-primary);
     margin-bottom: 25px;
     width: 100%;
 }
@@ -136,12 +140,12 @@ body {
     cursor: not-allowed;
     transform: none;
     box-shadow: 0 4px 12px rgba(46, 123, 255, 0.3);
-    background: linear-gradient(135deg, #ff9800, #ffc107) !important;
+    background: var(--warning-gradient) !important;
     animation: pulse 1.5s infinite;
 }
 
 .record-button.recording {
-    background: linear-gradient(135deg, #ff4444, #ff6b6b);
+    background: var(--error-gradient);
     box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
 }
 
@@ -160,7 +164,7 @@ body {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .overlay {
@@ -174,10 +178,6 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 9999;
-}
-
-.overlay.hidden {
-    display: none;
 }
 
 .overlay-content {
@@ -398,9 +398,6 @@ body {
     animation: slideInDown 0.3s ease-out;
 }
 
-.error-notification.hidden {
-    display: none;
-}
 
 .error-notification .error-content {
     background: #ffebee;
@@ -532,9 +529,8 @@ body {
 }
 
 @keyframes pulse {
-    0% { opacity: 1; }
+    0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
-    100% { opacity: 1; }
 }
 
 @keyframes spin {
@@ -608,21 +604,21 @@ body {
 @keyframes pulseRecording {
     0%, 100% { 
         transform: scale(1); 
-        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
     }
     50% { 
-        transform: scale(1.02); 
-        box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+        transform: scale(1.015); 
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
     }
 }
 
 @keyframes pulseSection {
     0%, 100% { 
         transform: scale(1); 
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
     }
     50% { 
-        transform: scale(1.01); 
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+        transform: scale(1.008); 
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
     }
 }
