@@ -66,12 +66,6 @@
         </div>
         
         <div class="results-section hidden" id="resultsSection">
-            <div class="results-header">
-                <h2 id="resultsHeader">Результаты анализа</h2>
-                <button class="new-recording-btn" id="newRecordingBtn">
-                    🎥 Новое измерение
-                </button>
-            </div>
             <div class="results-content" id="resultsContent"></div>
         </div>
 
@@ -169,7 +163,6 @@
 
         const resultsSection = document.getElementById('resultsSection');
         const resultsContent = document.getElementById('resultsContent');
-        const newRecordingBtn = document.getElementById('newRecordingBtn');
 
         const errorNotification = document.getElementById('errorNotification');
         const errorMessage = document.getElementById('errorMessage');
@@ -659,21 +652,32 @@
 
         // Отображает результаты ошибки анализа
         function showErrorResults(errorMessage, errorDetails = null) {
-            document.getElementById('resultsHeader').textContent = 'Ошибка анализа';
             
             const errorHTML = `
-                <div class="error-simple">
-                    <h3>⚠️ Ошибка анализа</h3>
-                    <p>${errorMessage}</p>
-                    ${errorDetails ? `<p><strong>Детали:</strong> <span class="error-details-text">${errorDetails}</span></p>` : ''}
-                    <div class="suggestions">
-                        <h4>Рекомендации:</h4>
-                        <ul>
-                            <li>Проверьте освещение - оно должно быть достаточно ярким</li>
-                            <li>Держите камеру стабильно во время записи</li>
-                            <li>Попробуйте записать видео заново</li>
+                <div class="error-card">
+                    <div class="error-icon">😔</div>
+                    <div class="error-title">Не получилось проанализировать видео</div>
+                    <div class="error-subtitle">${errorMessage}</div>
+                    
+                    ${errorDetails ? `
+                        <div class="error-details">
+                            <strong>Детали:</strong> ${errorDetails}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="tips-container">
+                        <div class="tips-title">Попробуйте так:</div>
+                        <ul class="tips-list">
+                            <li>включите яркий свет</li>
+                            <li>держите камеру стабильно</li>
+                            <li>убедитесь, что лицо хорошо видно в кадре</li>
                         </ul>
                     </div>
+                    
+                    <button class="retry-button" onclick="retryAnalysis()">
+                        <span class="arrow-icon">→</span>
+                        Записать ещё раз
+                    </button>
                 </div>
             `;
 
@@ -684,7 +688,6 @@
 
         // Отображает результаты анализа давления на экране
         function showResults(result) {
-            document.getElementById('resultsHeader').textContent = 'Результаты анализа';
             
             const { upper_ap, lower_ap } = result;
             
@@ -759,7 +762,6 @@
         }
         
         recordButton.addEventListener('click', startRecording);
-        newRecordingBtn.addEventListener('click', startNewRecording);
         errorCloseBtn.addEventListener('click', hideError);
 
         // Инициализация при загрузке страницы
