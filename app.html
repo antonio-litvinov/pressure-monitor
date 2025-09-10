@@ -562,6 +562,7 @@
                 recordButton.classList.add('recording');
                 timer.classList.remove('hidden');
                 videoPreview.classList.add('recording');
+                document.querySelector('.video-section').classList.add('recording');
                 
                 console.log('✅ Запись видео начата');
                 
@@ -594,6 +595,7 @@
             recordButton.classList.remove('recording');
             timer.classList.add('hidden');
             videoPreview.classList.remove('recording');
+            document.querySelector('.video-section').classList.remove('recording');
         }
 
         // Отправляет записанное видео на AI сервер для анализа
