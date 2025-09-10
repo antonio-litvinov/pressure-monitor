@@ -42,9 +42,10 @@
                 </div>
             </div>
         </div>
+        
         <div class="header">
-            <h1>🩺 <span class="ai">Цифровой </span><span class="assistant">тонометр</span></h1>
-            <p>Измерение артериального давления по видео с помощью искусственного интеллекта</p>
+            <h1 class="app-title">Цифровой тонометр</h1>
+            <p class="app-subtitle">Измерение артериального давления по видео с помощью искусственного интеллекта</p>
         </div>
 
         <div class="video-section">
@@ -52,14 +53,14 @@
                 <div class="video-placeholder">
                     <div class="video-icon">📹</div>
                     <div class="video-text">Подготовка камеры...</div>
-                    <div class="video-hint">Нажмите "Начать запись" когда будете готовы</div>
+                    <div class="video-hint">Нажмите "Начать измерение" когда будете готовы</div>
                 </div>
             </div>
 
             <div class="timer hidden" id="timer">⏱️ Осталось: 10 сек</div>
 
             <button class="record-button" id="recordButton">
-                🎥 Начать запись
+                Начать измерение
             </button>
             
             <div class="controls hidden" id="controls"></div>
@@ -232,11 +233,11 @@
             
             // Формируем основное сообщение об ошибке
             const userMessage = result.message || result.error || 'Не удалось распознать лицо на видео';
-            let userDetails = result.details || 'Возможные причины: плохое освещение, лицо не в кадре, размытое изображение';
+            let userDetails = result.details || 'плохое освещение, лицо не в кадре, размытое изображение';
             
             // Добавляем технический текст ошибки от сервера в скобочках
             if (result.error_text) {
-                userDetails += ` (${result.error_text})`;
+                userDetails += ` \n(${result.error_text})`;
             }
             
             return { userMessage, userDetails };
@@ -339,7 +340,7 @@
                         hideProgress();
                         showErrorResults(
                             'Модель не смогла обработать видео',
-                            'Возможные причины: видео слишком короткое, плохое качество или технические проблемы на сервере'
+                            'видео слишком короткое, плохое качество или технические проблемы на сервере'
                         );
                     }
                 } else {
@@ -504,7 +505,7 @@
                 setupMediaRecorder();
                 
                 // Обновляем текст кнопки
-                recordButton.textContent = '🎥 Начать запись';
+                recordButton.textContent = 'Начать измерение';
                 recordButton.disabled = false;
                 
                 console.log('✅ Камера инициализирована');
@@ -598,7 +599,7 @@
             clearInterval(timerInterval);
             
             recordButton.disabled = false;
-            recordButton.textContent = '🎥 Начать запись';
+            recordButton.textContent = 'Начать измерение';
             recordButton.classList.remove('recording');
             timer.classList.add('hidden');
             videoPreview.classList.remove('recording');
@@ -656,12 +657,12 @@
             const errorHTML = `
                 <div class="error-card">
                     <div class="error-icon">😔</div>
-                    <div class="error-title">Не получилось проанализировать видео</div>
-                    <div class="error-subtitle">${errorMessage}</div>
+                    
+                    <div class="error-title">${errorMessage}</div>
                     
                     ${errorDetails ? `
                         <div class="error-details">
-                            <strong>Детали:</strong> ${errorDetails}
+                            <strong>Возможные причины: </strong> ${errorDetails}
                         </div>
                     ` : ''}
                     
@@ -674,9 +675,8 @@
                         </ul>
                     </div>
                     
-                    <button class="retry-button" onclick="retryAnalysis()">
-                        <span class="arrow-icon">→</span>
-                        Записать ещё раз
+                    <button class="record-button" onclick="retryAnalysis()">
+                        Измерить ещё раз
                     </button>
                 </div>
             `;
@@ -750,7 +750,7 @@
                 <div class="video-placeholder">
                     <div class="video-icon">📹</div>
                     <div class="video-text">Подготовка камеры...</div>
-                    <div class="video-hint">Нажмите "Начать запись" когда будете готовы</div>
+                    <div class="video-hint">Нажмите "Начать измерение" когда будете готовы</div>
                 </div>
             `;
             

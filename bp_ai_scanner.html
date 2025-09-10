@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Цифровой тонометр</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .app-content {
+            padding: 0 20px 100px;
+            min-height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-top: 10px;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .app-subtitle {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .main-circle {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .circle-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.08));
+            border: 2px solid rgba(59, 130, 246, 0.2);
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .circle-content {
+            position: absolute;
+            text-align: center;
+        }
+
+        .scan-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .start-text {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1e293b;
+        }
+
+        .instruction-text {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.4;
+            margin-top: 8px;
+        }
+
+        .features {
+            margin-top: auto;
+            margin-bottom: 30px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            border-left: 3px solid #10b981;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            width: 22px;
+            height: 22px;
+            margin-right: 10px;
+            color: #10b981;
+        }
+
+        .feature-text {
+            font-size: 13px;
+            color: #334155;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            margin-bottom: 25px;
+            width: 100%;
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4);
+        }
+
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-top: 1px solid rgba(226, 232, 240, 0.5);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #64748b;
+            font-size: 12px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            padding: 5px;
+        }
+
+        .nav-item.active {
+            color: #3b82f6;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+        }
+
+        /* Scanning Screen */
+        .scanning-screen {
+            display: none;
+            text-align: center;
+            padding-top: 40px;
+        }
+
+        .camera-frame {
+            width: 180px;
+            height: 180px;
+            margin: 30px auto;
+            border-radius: 50%;
+            border: 3px solid #3b82f6;
+            position: relative;
+            overflow: hidden;
+            animation: scanning 2s linear infinite;
+        }
+
+        @keyframes scanning {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        .progress-ring {
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+        }
+
+        .progress-circle {
+            fill: none;
+            stroke: rgba(59, 130, 246, 0.2);
+            stroke-width: 4;
+        }
+
+        .progress-bar {
+            fill: none;
+            stroke: #3b82f6;
+            stroke-width: 4;
+            stroke-linecap: round;
+            transform-origin: center;
+            transform: rotate(-90deg);
+            animation: progress 15s linear;
+        }
+
+        @keyframes progress {
+            from { stroke-dasharray: 0 283; }
+            to { stroke-dasharray: 283 283; }
+        }
+
+        .timer {
+            font-size: 32px;
+            font-weight: 700;
+            color: #3b82f6;
+            margin: 15px 0;
+        }
+
+        .scanning-info {
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 16px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .scanning-steps {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+
+        .scanning-step {
+            text-align: center;
+            flex: 1;
+            padding: 0 8px;
+        }
+
+        .step-icon {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 6px;
+            font-size: 16px;
+            color: white;
+        }
+
+        .step-text {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .progress-info {
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .ai-analysis {
+            background: rgba(16, 185, 129, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .ai-analysis-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 8px;
+        }
+
+        .ai-analysis-text {
+            font-size: 11px;
+            color: #334155;
+            line-height: 1.4;
+        }
+
+        /* Results Screen */
+        .results-screen {
+            display: none;
+            padding-top: 20px;
+            overflow-y: auto;
+            padding-bottom: 120px;
+        }
+
+        .result-card {
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .pressure-values {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        .pressure-item {
+            text-align: center;
+        }
+
+        .pressure-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .pressure-label {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .stat-item {
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .pressure-chart {
+            width: 100%;
+            height: 100px;
+            margin: 15px 0;
+            position: relative;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-title {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .pressure-bar {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(90deg, #10b981 0%, #fbbf24 50%, #f59e0b 75%, #ef4444 100%);
+            border-radius: 10px;
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .pressure-indicator {
+            position: absolute;
+            top: -5px;
+            width: 4px;
+            height: 30px;
+            background: #ffffff;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .pressure-scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .trend-chart {
+            width: 100%;
+            height: 60px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .trend-line {
+            position: absolute;
+            bottom: 15px;
+            left: 10px;
+            right: 10px;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            border-radius: 1px;
+        }
+
+        .trend-points {
+            position: absolute;
+            bottom: 5px;
+            left: 10px;
+            right: 10px;
+            height: 30px;
+        }
+
+        .trend-point {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #3b82f6;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+        }
+
+        .health-summary {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.05));
+            border-radius: 16px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #10b981;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .summary-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 8px;
+        }
+
+        .summary-text {
+            font-size: 12px;
+            color: #334155;
+            line-height: 1.4;
+        }
+
+        .recommendations {
+            background: rgba(224, 242, 254, 0.8);
+            border-radius: 16px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #3b82f6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .recommendations-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3b82f6;
+            margin-bottom: 8px;
+        }
+
+        .recommendation-item {
+            font-size: 12px;
+            color: #334155;
+            margin: 6px 0;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .recommendation-item::before {
+            content: '•';
+            color: #3b82f6;
+            position: absolute;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>●●●○○</span>
+            <span>100%</span>
+        </div>
+
+        <!-- Main Screen -->
+        <div class="app-content" id="mainScreen">
+            <div class="header">
+                <h1 class="app-title">Цифровой тонометр</h1>
+                <p class="app-subtitle">Измерение давления с помощью ИИ</p>
+            </div>
+
+            <div class="main-circle">
+                <div class="circle-bg"></div>
+                <div class="circle-content">
+                    <div class="scan-icon">📱</div>
+                    <div class="instruction-text">Посмотрите на камеру<br>в течение 15 секунд</div>
+                </div>
+            </div>
+
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-text">AI-анализ в реальном времени</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-text">Точные измерения давления</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📋</div>
+                    <div class="feature-text">Персональные рекомендации</div>
+                </div>
+            </div>
+
+            <button class="start-button" onclick="startScanning()">
+                Начать измерение
+            </button>
+        </div>
+
+        <!-- Scanning Screen -->
+        <div class="app-content scanning-screen" id="scanningScreen">
+            <div class="header">
+                <h2 class="app-title">Сканирование...</h2>
+                <p class="app-subtitle">Держите телефон ровно</p>
+            </div>
+
+            <div class="camera-frame">
+                <div style="width: 100%; height: 100%; background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(16,185,129,0.1) 100%); display: flex; align-items: center; justify-content: center; font-size: 48px;">👤</div>
+            </div>
+
+            <div class="progress-ring">
+                <svg width="100" height="100">
+                    <circle class="progress-circle" cx="50" cy="50" r="40"></circle>
+                    <circle class="progress-bar" cx="50" cy="50" r="40"></circle>
+                </svg>
+            </div>
+
+            <div class="timer" id="timer">15</div>
+
+            <div class="scanning-info">
+                <div class="scanning-steps">
+                    <div class="scanning-step">
+                        <div class="step-icon">📷</div>
+                        <div class="step-text">Захват<br>изображения</div>
+                    </div>
+                    <div class="scanning-step">
+                        <div class="step-icon">🧠</div>
+                        <div class="step-text">AI<br>анализ</div>
+                    </div>
+                    <div class="scanning-step">
+                        <div class="step-icon">📊</div>
+                        <div class="step-text">Расчет<br>показателей</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-info">
+                <div class="progress-text">Анализируем ваши биометрические данные...</div>
+            </div>
+
+            <div class="ai-analysis">
+                <div class="ai-analysis-title">🤖 Что происходит сейчас</div>
+                <div class="ai-analysis-text">
+                    Нейросеть анализирует изменения цвета кожи лица для определения пульса и артериального давления
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div class="app-content results-screen" id="resultsScreen">
+            <div class="header">
+                <h2 class="app-title">Результаты</h2>
+                <p class="app-subtitle">Измерение завершено</p>
+            </div>
+
+            <div class="result-card">
+                <div class="pressure-values">
+                    <div class="pressure-item">
+                        <div class="pressure-value">125</div>
+                        <div class="pressure-label">Систолическое<br>(верхнее)</div>
+                    </div>
+                    <div class="pressure-item">
+                        <div class="pressure-value">82</div>
+                        <div class="pressure-label">Диастолическое<br>(нижнее)</div>
+                    </div>
+                </div>
+
+                <!-- Pressure Range Chart -->
+                <div class="pressure-chart">
+                    <div class="chart-title">Ваше давление на шкале нормы</div>
+                    <div class="pressure-bar">
+                        <div class="pressure-indicator" style="left: 35%;"></div>
+                    </div>
+                    <div class="pressure-scale">
+                        <span>90/60</span>
+                        <span>120/80</span>
+                        <span>140/90</span>
+                        <span>180/110</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Grid -->
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">72</div>
+                    <div class="stat-label">Пульс<br>уд/мин</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">98%</div>
+                    <div class="stat-label">Точность<br>измерения</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">43</div>
+                    <div class="stat-label">Пульсовое<br>давление</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">96</div>
+                    <div class="stat-label">Среднее<br>давление</div>
+                </div>
+            </div>
+
+            <!-- Trend Chart -->
+            <div class="pressure-chart">
+                <div class="chart-title">Тренд за последние измерения</div>
+                <div class="trend-chart">
+                    <div class="trend-line"></div>
+                    <div class="trend-points">
+                        <div class="trend-point" style="left: 10%; bottom: 15px;"></div>
+                        <div class="trend-point" style="left: 30%; bottom: 20px;"></div>
+                        <div class="trend-point" style="left: 50%; bottom: 18px;"></div>
+                        <div class="trend-point" style="left: 70%; bottom: 22px;"></div>
+                        <div class="trend-point" style="left: 90%; bottom: 20px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="health-summary">
+                <div class="summary-title">✅ Нормальное давление</div>
+                <div class="summary-text">
+                    Ваши показатели находятся в пределах нормы. Ваше сердечно-сосудистое здоровье в хорошем состоянии.
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="recommendations">
+                <div class="recommendations-title">💡 Рекомендации</div>
+                <div class="recommendation-item">Продолжайте регулярные физические упражнения</div>
+                <div class="recommendation-item">Поддерживайте сбалансированное питание</div>
+                <div class="recommendation-item">Измеряйте давление 1-2 раза в неделю</div>
+                <div class="recommendation-item">Избегайте стрессовых ситуаций</div>
+            </div>
+
+            <button class="start-button" onclick="showMainScreen()">
+                Новое измерение
+            </button>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <span>Главная</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">📈</div>
+                <span>История</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">⚙️</div>
+                <span>Настройки</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let countdownTimer;
+        let currentTime = 15;
+
+        function startScanning() {
+            document.getElementById('mainScreen').style.display = 'none';
+            document.getElementById('scanningScreen').style.display = 'flex';
+            document.getElementById('scanningScreen').style.flexDirection = 'column';
+            
+            currentTime = 15;
+            countdownTimer = setInterval(() => {
+                currentTime--;
+                document.getElementById('timer').textContent = currentTime;
+                
+                if (currentTime <= 0) {
+                    clearInterval(countdownTimer);
+                    showResults();
+                }
+            }, 1000);
+        }
+
+        function showResults() {
+            document.getElementById('scanningScreen').style.display = 'none';
+            document.getElementById('resultsScreen').style.display = 'flex';
+            document.getElementById('resultsScreen').style.flexDirection = 'column';
+        }
+
+        function showMainScreen() {
+            document.getElementById('resultsScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'flex';
+            document.getElementById('mainScreen').style.flexDirection = 'column';
+        }
+
+        // Interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const features = document.querySelectorAll('.feature-item');
+            features.forEach(feature => {
+                feature.addEventListener('click', function() {
+                    this.style.background = 'rgba(59, 130, 246, 0.1)';
+                    setTimeout(() => {
+                        this.style.background = 'rgba(248, 250, 252, 0.8)';
+                    }, 200);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
