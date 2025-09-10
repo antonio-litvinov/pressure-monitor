@@ -233,14 +233,12 @@
             
             // Формируем основное сообщение об ошибке
             const userMessage = result.message || result.error || 'Не удалось распознать лицо на видео';
-            let userDetails = result.details || 'плохое освещение, лицо не в кадре, размытое изображение';
+            const userDetails = result.details || 'плохое освещение, лицо не в кадре, размытое изображение';
             
-            // Добавляем технический текст ошибки от сервера в скобочках
-            if (result.error_text) {
-                userDetails += ` \n(${result.error_text})`;
-            }
+            // Технические детали от сервера отдельно
+            const technicalDetails = result.error_text || null;
             
-            return { userMessage, userDetails };
+            return { userMessage, userDetails, technicalDetails };
         }
         
         // Обновляет прогресс-бар и визуальные индикаторы шагов
@@ -320,8 +318,8 @@
                     stopAutoCheck();
                     hideProgress();
                     
-                    const { userMessage, userDetails } = handleAIError(result);
-                    showErrorResults(userMessage, userDetails);
+                    const { userMessage, userDetails, technicalDetails } = handleAIError(result);
+                    showErrorResults(userMessage, userDetails, technicalDetails);
                 } else {
                     throw new Error(`Статус обработки не OK: ${result.status}`);
                 }
@@ -567,7 +565,7 @@
                 
                 // Делаем кнопку неактивной и показываем статус записи
                 recordButton.disabled = true;
-                recordButton.textContent = '🎥 Идет запись...';
+                recordButton.textContent = 'Идет запись видео...';
                 recordButton.classList.add('recording');
                 timer.classList.remove('hidden');
                 videoPreview.classList.add('recording');
@@ -652,7 +650,19 @@
         }
 
         // Отображает результаты ошибки анализа
-        function showErrorResults(errorMessage, errorDetails = null) {
+        function showErrorResults(errorMessage, errorDetails = null, technicalDetails = null) {
+            
+            // Формируем содержимое блока с деталями ошибки
+            let errorDetailsHTML = '';
+            if (errorDetails) {
+                const technicalHTML = technicalDetails ? `<div class="technical-details">(${technicalDetails})</div>` : '';
+                errorDetailsHTML = `
+                    <div class="error-details">
+                        <strong>Возможные причины: </strong> ${errorDetails}
+                        ${technicalHTML}
+                    </div>
+                `;
+            }
             
             const errorHTML = `
                 <div class="error-card">
@@ -660,11 +670,7 @@
                     
                     <div class="error-title">${errorMessage}</div>
                     
-                    ${errorDetails ? `
-                        <div class="error-details">
-                            <strong>Возможные причины: </strong> ${errorDetails}
-                        </div>
-                    ` : ''}
+                    ${errorDetailsHTML}
                     
                     <div class="tips-container">
                         <div class="tips-title">Попробуйте так:</div>
