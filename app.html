@@ -424,21 +424,14 @@
         
         // Обрабатывает завершение записи видео
         function handleRecordingComplete() {
-            // Создаем blob из записанных фрагментов
-            const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
-            const videoUrl = URL.createObjectURL(blob);
-            
-            // Создаем элемент video для отображения записанного видео
-            const recordedVideo = document.createElement('video');
-            recordedVideo.src = videoUrl;
-            recordedVideo.controls = true;
-            recordedVideo.autoplay = false;
-            recordedVideo.muted = true;
-            recordedVideo.className = 'recorded-video';
-            
-            // Заменяем превью на записанное видео
-            videoPreview.innerHTML = '';
-            videoPreview.appendChild(recordedVideo);
+            // Показываем сообщение о завершении записи вместо плеера
+            videoPreview.innerHTML = `
+                <div class="video-placeholder">
+                    <div class="video-icon">✅</div>
+                    <div class="video-text">Запись завершена</div>
+                    <div class="video-hint">Отправка на анализ...</div>
+                </div>
+            `;
             
             // Останавливаем поток камеры
             if (stream) {
@@ -728,6 +721,9 @@
                         ${category}
                     </div>
                 </div>
+                <button class="record-button" onclick="retryAnalysis()">
+                        Измерить ещё раз
+                </button>
             `;
 
             resultsContent.innerHTML = resultsHTML;
@@ -735,6 +731,11 @@
             document.querySelector('.video-section').style.display = 'none';
         }
 
+        // Повторяет анализ после ошибки
+        function retryAnalysis() {
+            startNewRecording();
+        }
+        
         // Сбрасывает интерфейс для новой записи
         function startNewRecording() {
             resultsSection.classList.add('hidden');

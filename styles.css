@@ -372,12 +372,11 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.recorded-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
+.pressure-card .record-button {
+    margin-bottom: 0;
+    margin-top: 16px;
 }
+
 
 .error-notification {
     position: fixed;
