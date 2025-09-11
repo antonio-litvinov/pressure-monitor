@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 # Обработчик команды /start — отправляет кнопку для запуска мини-аппы
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [KeyboardButton(text="Открыть мини-аппу", web_app=WebAppInfo(url="https://pressure-monitor.ru/app3.html"))]  # замените на адрес вашего приложения
+        [KeyboardButton(text="Открыть мини-аппу", web_app=WebAppInfo(url="https://pressure-monitor.ru/app.html"))]  # замените на адрес вашего приложения
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text("Нажмите на кнопку для запуска мини-аппы:", reply_markup=reply_markup)
