@@ -1,8 +1,22 @@
 import logging
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, WebAppInfo
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
+import json
+
 logging.basicConfig(level=logging.INFO)
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+import os
+from supabase import create_client, Client
+
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
+
 
 # Обработчик команды /start — отправляет кнопку для запуска мини-аппы
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -54,8 +68,7 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 # Прием данных из мини-аппы
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = update.effective_message.web_app_data.data
-
-    import json
+    user = update.effective_user.first_name
 
     try:
         parsed = json.loads(data)
@@ -63,15 +76,24 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         time = parsed.get("time", "")
         upper = parsed.get("upper", "")
         lower = parsed.get("lower", "")
-        text = f"Замер от {date} {time}:\n<b>{upper}</b> на <b>{lower}</b>"
-    except Exception:
-        text = "Ошибка обработки данных замера."
+        text = f"🩺 Замер от {date} {time}:\n<b>{upper}</b> на <b>{lower}</b>"
 
-    #user = update.effective_user.first_name
+        supabase.table("measures").insert({
+            "name": user, 
+            "date": date, 
+            "time": time, 
+            "upper": upper, 
+            "lower": lower
+        }).execute()
+
+    except Exception:
+        text = "Ошибка обработки данных замера"
+
+
     await update.message.reply_text(f"{text}", parse_mode='HTML')
 
 def main():
-    application = Application.builder().token("8462728848:AAFcqpERSPj88PaHdfyX0Qcjnqrb_pOk3Cw").build()
+    application = Application.builder().token(os.environ.get("TOKEN")).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^❓ Помощь$"), help_button))
