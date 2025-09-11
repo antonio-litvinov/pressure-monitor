@@ -11,33 +11,41 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [KeyboardButton(text="❓ Помощь")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
-    await update.message.reply_text("Нажмите на кнопку 'Измерить' для запуска приложения:", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "<b>🙏 Спасибо вам за помощь в тестировании цифрового тонометра!</b>\n\n"
+        "Мы настраиваем технологию, и каждое успешное измерение (как и неуспешное) "
+        "приближает нас к тому, чтобы у каждого человека было удобное решение для измерения давления — "
+        "в любое время и в любом месте.\n\n"
+        "<i>Нажмите «Измерить», чтобы начать</i>🚀",
+        reply_markup=reply_markup,
+        parse_mode="HTML"
+    )
 
 # Обработчик команды /help
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    help_text = """
-📋 **Помощь по использованию цифрового тонометра**
 
-**Как использовать:**
-1. Нажмите "Измерить" для запуска приложения
-2. Разрешите доступ к камере
-3. Нажмите "Начать измерение"
-4. Держите лицо в кадре 10 секунд
-5. Получите результат измерения давления
-
-**Требования:**
-• Хорошее освещение
-• Стабильное положение камеры
-• Лицо должно быть хорошо видно в кадре
-
-**Если возникли проблемы:**
-• Убедитесь, что камера не занята другими приложениями
-• Проверьте интернет-соединение
-• Попробуйте в другом браузере
-
-Для повторного измерения нажмите "Измерить ещё раз" после получения результата.
-    """
-    await update.message.reply_text(help_text, parse_mode='Markdown')
+    #await update.message.reply_text(help_text, parse_mode='Markdown')
+    await update.message.reply_text(
+        "<b>📋 Помощь по использованию цифрового тонометра</b>\n\n"
+        "Пожалуйста, <b>сядьте удобно</b> и <b>увеличьте яркость экрана</b> до максимума. "
+        "Измерение будет точнее, если ваше лицо <b>хорошо освещено</b>.\n\n"
+        "<b>Как использовать:</b>\n"
+        "1️⃣ Нажмите <b>«Измерить»</b> для запуска приложения\n"
+        "2️⃣ Разрешите доступ к камере\n"
+        "3️⃣ Нажмите <b>«Начать измерение»</b>\n"
+        "4️⃣ Держите лицо в кадре <b>10 секунд</b>\n"
+        "5️⃣ Получите результат измерения давления\n\n"
+        "<b>Требования:</b>\n"
+        "• Хорошее освещение\n"
+        "• Стабильное положение камеры\n"
+        "• Лицо должно быть хорошо видно в кадре\n\n"
+        "<b>Если возникли проблемы:</b>\n"
+        "• Убедитесь, что камера не занята другими приложениями\n"
+        "• Проверьте интернет-соединение\n"
+        "• Попробуйте в другом браузере\n\n"
+        "<i>Для повторного измерения нажмите «Измерить ещё раз» после получения результата.</i>",
+        parse_mode="HTML"
+    )
 
 # Обработчик кнопки "Помощь"
 async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -66,7 +74,7 @@ def main():
     application = Application.builder().token("8462728848:AAFcqpERSPj88PaHdfyX0Qcjnqrb_pOk3Cw").build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(MessageHandler(filters.Regex("^Помощь$"), help_button))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^❓ Помощь$"), help_button))
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
