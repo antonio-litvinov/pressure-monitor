@@ -30,11 +30,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 • Стабильное положение камеры
 • Лицо должно быть хорошо видно в кадре
 
-**Поддерживаемые браузеры:**
-• Safari на iOS 14.3+
-• Chrome, Firefox на Android
-• Требуется HTTPS соединение
-
 **Если возникли проблемы:**
 • Убедитесь, что камера не занята другими приложениями
 • Проверьте интернет-соединение
@@ -50,8 +45,22 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 # Прием данных из мини-аппы
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.effective_message.web_app_data.data
-    await update.message.reply_text(f"{text}")
+    data = update.effective_message.web_app_data.data
+
+    import json
+
+    try:
+        parsed = json.loads(data)
+        date = parsed.get("date", "")
+        time = parsed.get("time", "")
+        upper = parsed.get("upper", "")
+        lower = parsed.get("lower", "")
+        text = f"Замер от {date} {time}:\n<b>{upper}</b> на <b>{lower}</b>"
+    except Exception:
+        text = "Ошибка обработки данных замера."
+
+    #user = update.effective_user.first_name
+    await update.message.reply_text(f"{text}", parse_mode='HTML')
 
 def main():
     application = Application.builder().token("8462728848:AAFcqpERSPj88PaHdfyX0Qcjnqrb_pOk3Cw").build()

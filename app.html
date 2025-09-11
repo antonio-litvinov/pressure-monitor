@@ -81,6 +81,7 @@
     </div>
 
     <script>
+
         // ===== КОНСТАНТЫ КОНФИГУРАЦИИ =====
         
         // Определяем поддерживаемый формат видео
@@ -745,7 +746,13 @@
             
             const tg = window.Telegram.WebApp;
             tg.ready();
-            tg.sendData("Результаты анализа от " + dateStr + " " + timeStr + " :" + upper_ap + " на " + lower_ap);
+            tg.sendData(JSON.stringify({
+                date: dateStr,
+                time: timeStr,
+                upper: upper_ap,
+                lower: lower_ap
+            }));
+            
             tg.close();
         }
 
@@ -818,6 +825,7 @@
             initializeCamera();
         });
 
-    </script>
+</script>
+
 </body>
 </html>
