@@ -7,6 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Цифровой тонометр - AI версия</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=1.0.1">
 </head>
@@ -517,6 +518,7 @@
 
         // Начинает запись видео
         async function startRecording() {
+
             // Если уже идет запись, игнорируем нажатие
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 return;
@@ -691,7 +693,7 @@
         function showResults(result) {
             
             const { upper_ap, lower_ap } = result;
-            
+
             // Определяем категорию давления по медицинским стандартам
             let category = 'Нормальное', categoryColor = '#4caf50';
             
@@ -723,14 +725,26 @@
                         ${category}
                     </div>
                 </div>
-                <button class="record-button" onclick="retryAnalysis()">
-                        Измерить ещё раз
+                <button class="record-button" onclick="sendToTelegram(${upper_ap}, ${lower_ap})">
+                    Сохранить и закрыть
                 </button>
             `;
+            // <button class="record-button" onclick="retryAnalysis()">
 
             resultsContent.innerHTML = resultsHTML;
             resultsSection.classList.remove('hidden');
             document.querySelector('.video-section').style.display = 'none';
+        }
+
+        // Отправляет результаты в Telegram
+        function sendToTelegram(upper_ap, lower_ap) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ru-RU');
+            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.sendData("Результаты анализа от " + dateStr + " " + timeStr + " :" + upper_ap + " на " + lower_ap);
         }
 
         // Повторяет анализ после ошибки
