@@ -457,7 +457,7 @@
                 
                 // Проверяем HTTPS для iOS
                 if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                    showError('Для работы с камерой требуется HTTPS. Пожалуйста, откройте сайт по адресу https://...');
+                    showError('Для работы с камерой требуется HTTPS');
                     return;
                 }
                 
@@ -692,7 +692,9 @@
         // Отображает результаты анализа давления на экране
         function showResults(result) {
             
-            const { upper_ap, lower_ap } = result;
+            // Округляем значения давления до целых
+            const upper_ap = Math.round(result.upper_ap);
+            const lower_ap = Math.round(result.lower_ap);
 
             // Определяем категорию давления по медицинским стандартам
             let category = 'Нормальное', categoryColor = '#4caf50';
@@ -729,7 +731,6 @@
                     Сохранить и закрыть
                 </button>
             `;
-            // <button class="record-button" onclick="retryAnalysis()">
 
             resultsContent.innerHTML = resultsHTML;
             resultsSection.classList.remove('hidden');
@@ -745,6 +746,7 @@
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.sendData("Результаты анализа от " + dateStr + " " + timeStr + " :" + upper_ap + " на " + lower_ap);
+            tg.close();
         }
 
         // Повторяет анализ после ошибки
