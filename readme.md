@@ -1,4 +1,4 @@
-### Настройка сервера
+## Настройка сервера
 
 ```bash
 adduser antonio
@@ -6,7 +6,7 @@ sudo passwd antonio
 usermod -aG sudo antonio
 ```
 
-#### Если под root:
+### Если под root:
 ```bash
 mkdir -p /home/antonio/.ssh
 chmod 700 /home/antonio/.ssh
@@ -15,7 +15,7 @@ chmod 600 /home/antonio/.ssh/authorized_keys
 chown antonio:antonio /home/antonio/.ssh/authorized_keys
 ```
 
-#### Если под antonio:
+### Если под antonio:
 ```bash
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
@@ -26,13 +26,12 @@ chmod 600 ~/.ssh/authorized_keys
 Если уже есть публичный ключ на локальной машине, то:
 ssh-copy-id -i ~/.ssh/id_ed25519.pub antonio@<ip>
 
-#### Настройка авторизации на сервере:
+### Настройка авторизации на сервере:
 
 ```bash
 sudoedit /etc/ssh/sshd_config
-```
 
-#### поменять/добавить:
+# поменять/добавить:
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes
@@ -40,28 +39,10 @@ PermitRootLogin no
 MaxAuthTries 3
 AllowUsers antonio
 
-```bash
 sudo sshd -t    # проверка конфига
 sudo systemctl reload ssh
+
 ```
-
-# Или посмотреть весь лог аутентификаций
-```bash
-sudo cat /var/log/auth.log | grep "Failed password"
-```
-
-
-docker build -t video_server .
-
-docker run -d -p 5000:5000 --env-file .env --name test video_server
-
-
-   docker run -e GIGADOC_TOKEN="ваш_токен" your-image
-
-   environment:
-     - GIGADOC_TOKEN=ваш_токен
-
-
 
 ### Установка Docker
 ```bash
@@ -78,12 +59,21 @@ sudo systemctl status docker
 sudo usermod -aG docker $USER
 ```
 
-### Запуск docker образа
+### Запуск docker образа модели
 
 1. Загрузить скаченный образ из архива командой `docker load -i ws_gigadoc_cpu.tar.gz`
 2. Скопировать папку ws_adapter на сервер
 3. Запустить `docker compose build`
 4. Поднять контейнеры `docker compose up -d`
+
+### Запуск docker образа сервисов
+
+```bash
+docker build -t image-name .
+docker run -d -p 5000:5000 --env-file .env --name container-name image-name
+docker run -e GIGADOC_TOKEN="ваш_токен" image-name
+```
+## Настройка доменного имени
 
 ### Установка необходимых пакетов
 ```bash
@@ -148,18 +138,64 @@ sudo systemctl reload nginx
 sudo systemctl status nginx
 ```
 
-### Открытие необходимых портов
+## Защита сервера
+
+### Посмотреть лог аутентификаций
 ```bash
+sudo cat /var/log/auth.log | grep "Failed password"
+```
+
+### Открытие необходимых портов
+
+```bash
+
+# Посмотреть открытые порты
+sudo lsof -i -P -n | grep LISTEN
+
 # Открыть порты
 sudo ufw allow 22    # SSH
 sudo ufw allow 80    # HTTP
 sudo ufw allow 443   # HTTPS
+
+# Политика по умолчанию
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
 
 # Включить файрвол
 sudo ufw enable
 
 # Проверить статус
 sudo ufw status
+```
+
+### Настройка fail2ban
+
+```bash
+sudo apt install fail2ban
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+
+# Конфигурация fail2ban
+[DEFAULT]
+bantime = 1h
+findtime = 10m
+maxretry = 5
+bantime.increment = true
+bantime.factor = 2
+bantime.rndtime = 10m
+
+[sshd]
+enabled = true
+
+[nginx-http-auth]
+enabled = true
+
+[nginx-badbots]
+enabled = true
+
+sudo systemctl restart fail2ban
+
+sudo fail2ban-client status sshd
+
 ```
 
 ### Создание screen сессии
