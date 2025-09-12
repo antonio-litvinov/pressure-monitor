@@ -1,4 +1,67 @@
-sudo passwd ubuntu
+### Настройка сервера
+
+```bash
+adduser antonio
+sudo passwd antonio
+usermod -aG sudo antonio
+```
+
+#### Если под root:
+```bash
+mkdir -p /home/antonio/.ssh
+chmod 700 /home/antonio/.ssh
+chown antonio:antonio /home/antonio/.ssh
+chmod 600 /home/antonio/.ssh/authorized_keys
+chown antonio:antonio /home/antonio/.ssh/authorized_keys
+```
+
+#### Если под antonio:
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+nano ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Если уже есть публичный ключ на локальной машине, то:
+ssh-copy-id -i ~/.ssh/id_ed25519.pub antonio@<ip>
+
+#### Настройка авторизации на сервере:
+
+```bash
+sudoedit /etc/ssh/sshd_config
+```
+
+#### поменять/добавить:
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no
+MaxAuthTries 3
+AllowUsers antonio
+
+```bash
+sudo sshd -t    # проверка конфига
+sudo systemctl reload ssh
+```
+
+# Или посмотреть весь лог аутентификаций
+```bash
+sudo cat /var/log/auth.log | grep "Failed password"
+```
+
+
+docker build -t video_server .
+
+docker run -d -p 5000:5000 --env-file .env --name test video_server
+
+
+   docker run -e GIGADOC_TOKEN="ваш_токен" your-image
+
+   environment:
+     - GIGADOC_TOKEN=ваш_токен
+
+
 
 ### Установка Docker
 ```bash

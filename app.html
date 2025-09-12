@@ -460,10 +460,10 @@
                 }
                 
                 // Проверяем HTTPS для iOS
-                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                    showError('Для работы с камерой требуется HTTPS');
-                    return;
-                }
+                //if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                //    showError('Для работы с камерой требуется HTTPS');
+                //    return;
+                //}
                 
                 // Настройки камеры с учетом ограничений iOS
                 const constraints = {
@@ -823,12 +823,12 @@
             }
             
             // Проверяем HTTPS
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                showError('Для работы с камерой требуется HTTPS');
-                recordButton.disabled = true;
-                recordButton.textContent = '❌ Требуется HTTPS';
-                return;
-            }
+            //if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            //    showError('Для работы с камерой требуется HTTPS');
+            //    recordButton.disabled = true;
+            //    recordButton.textContent = '❌ Требуется HTTPS';
+            //    return;
+            //}
             
             // Инициализация камеры
             initializeCamera();

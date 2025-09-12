@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 import os
+
 from flask import Flask, jsonify, request
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
-token = 123
+token = os.environ.get("GIGADOC_TOKEN")
 
 # Настройки для сохранения файлов
 app.config['UPLOAD_FOLDER'] = 'videos'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-@app.route('/api/process-video', methods=['POST'])
+@app.route('/upload', methods=['POST'])
 def process_video():
     try:
         # Проверка Bearer токена
@@ -23,10 +27,10 @@ def process_video():
         if bearer_token != str(token):
             return jsonify({'error': 'Неверный токен авторизации'}), 401
         
-        if 'video' not in request.files or request.files['video'].filename == '':
+        if 'file' not in request.files or request.files['file'].filename == '':
             return jsonify({'error': 'Файл видео не выбран'}), 400
         
-        file = request.files['video']
+        file = request.files['file']
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         
@@ -40,10 +44,6 @@ def process_video():
                 'success': True,
                 'message': 'Видео получено и сохранено',
                 'filename': filename,
-                'filepath': filepath,
-                'size': file_size,
-                'timestamp': request.form.get('timestamp'),
-                'user_id': request.form.get('user_id')
             })
         else:
             return jsonify({'error': 'Ошибка сохранения файла'}), 500
@@ -53,4 +53,4 @@ def process_video():
         return jsonify({'error': f'Ошибка сервера: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)
