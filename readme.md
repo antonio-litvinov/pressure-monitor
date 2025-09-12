@@ -252,12 +252,14 @@ crontab -e
 
 #### Перезапуск каждый час в 0 минут:
 ```bash
-0 * * * * /path/to/your/ws_adapter/restart.sh >> /var/log/ws-adapter-restart.log 2>&1
+0 * * * * /home/antonio/restart.sh >> /home/antonio/ws-adapter-restart.log 2>&1
 ```
 
 #### Перезапуск каждые полчаса:
 ```bash
-*/30 * * * * /path/to/your/ws_adapter/restart.sh >> /var/log/ws-adapter-restart.log 2>&1
+
+*/30 * * * * /home/antonio/restart.sh >> /home/antonio/ws-adapter-restart.log 2>&1
+
 ```
 
 #### Проверьте, что cron работает:
@@ -265,9 +267,6 @@ crontab -e
 # Проверить активные cron задачи
 crontab -l
 
-# Проверить логи cron
-sudo tail -f /var/log/cron
-
 # Проверить логи перезапуска
-tail -f /var/log/ws-adapter-restart.log
+tail -f /home/antonio/ws-adapter-restart.log
 ```
