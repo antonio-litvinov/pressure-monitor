@@ -1,0 +1,33 @@
+#version: "3.9"
+version: "2.5"
+services:
+  gigadoc:
+    image: ws_gigadoc_cpu:latest
+    restart: always  
+    container_name: gigadoc
+    network_mode: "host"
+    entrypoint: "python3 ws_server.py  -vvv --device=cpu --ip=0.0.0.0"
+
+  ws_adapter:
+    restart: always
+    build:      
+      dockerfile: Dockerfile
+      context: ./ws_adapter/
+
+    volumes:
+      - "./ws_adapter/:/usr/src/app/"
+    network_mode: "host"
+    env_file:
+      - .env        
+
+  telegram_bot:
+    restart: always
+    build:      
+      dockerfile: Dockerfile
+      context: ./telegram_bot/
+
+    volumes:
+      - "./telegram_bot/:/usr/src/app/"
+    network_mode: "host"
+    env_file:
+      - .env

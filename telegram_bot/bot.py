@@ -13,15 +13,16 @@ load_dotenv()
 import os
 from supabase import create_client, Client
 
+token: str = os.environ.get("GIGADOC_TOKEN")
+
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
-
 # Обработчик команды /start — отправляет кнопку для запуска мини-аппы
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [KeyboardButton(text="🩺 Измерить", web_app=WebAppInfo(url="https://pressure-monitor.ru/app.html?token=123"))],
+        [KeyboardButton(text="🩺 Измерить", web_app=WebAppInfo(url=f"https://pressure-monitor.ru/app.html?token={token}"))],
         [KeyboardButton(text="❓ Помощь")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
@@ -68,7 +69,7 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 # Прием данных из мини-аппы
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = update.effective_message.web_app_data.data
-    user = update.effective_user.first_name
+    user = update.effective_user.username
 
     try:
         parsed = json.loads(data)
