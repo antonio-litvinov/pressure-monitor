@@ -82,6 +82,9 @@
 
     <script>
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
         // ===== КОНСТАНТЫ КОНФИГУРАЦИИ =====
         
         // Определяем поддерживаемый формат видео
@@ -613,10 +616,16 @@
                 const blob = new Blob(recordedChunks, { type: VIDEO_MIME_TYPE });
                 formData.append('file', blob, 'video.webm');
 
-                const uploadResponse = await fetch(`${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.upload}`, {
-                    method: 'POST',
-                    body: formData
-                });
+                const uploadResponse = await fetch(
+                    `${AI_SERVER_CONFIG.baseUrl}${AI_SERVER_CONFIG.endpoints.upload}`,
+                    {
+                        method: 'POST',
+                        body: formData,
+                        headers: token
+                            ? { 'Authorization': `Bearer ${token}` }
+                            : undefined
+                    }
+                );
 
                 if (!uploadResponse.ok) {
                     throw new Error(`HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`);
@@ -815,7 +824,7 @@
             
             // Проверяем HTTPS
             if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                showError('Для работы с камерой требуется HTTPS. Пожалуйста, откройте сайт по адресу https://...');
+                showError('Для работы с камерой требуется HTTPS');
                 recordButton.disabled = true;
                 recordButton.textContent = '❌ Требуется HTTPS';
                 return;

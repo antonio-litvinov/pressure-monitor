@@ -21,7 +21,7 @@ supabase: Client = create_client(url, key)
 # Обработчик команды /start — отправляет кнопку для запуска мини-аппы
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [KeyboardButton(text="🩺 Измерить", web_app=WebAppInfo(url="https://pressure-monitor.ru/app.html"))],
+        [KeyboardButton(text="🩺 Измерить", web_app=WebAppInfo(url="https://pressure-monitor.ru/app.html?token=123"))],
         [KeyboardButton(text="❓ Помощь")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
