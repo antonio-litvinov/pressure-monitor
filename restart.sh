@@ -1,18 +1,17 @@
 #!/bin/bash
 
-echo "$(date): Restarting ws-adapter..."
+echo "$(date): Останавливаем контейнеры..."
 
-# Останавливаем контейнер
-echo "Stopping containers..."
-docker compose down
+# Останавливаем контейнеры
+docker compose down gigadoc
+docker compose down ws_adapter
 
 # Ждем 5 секунд для полной остановки
 sleep 5
 
 # Запускаем заново
-echo "Starting containers..."
-docker compose up -d
+echo "Запускаем контейнеры..."
+docker compose up gigadoc -d
+docker compose up ws_adapter -d
 
-echo "$(date): ws-adapter restarted successfully"
-echo "Container status:"
-docker compose ps
+echo "$(date): Контейнеры запущены успешно"

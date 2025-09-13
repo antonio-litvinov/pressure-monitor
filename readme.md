@@ -270,3 +270,38 @@ crontab -l
 # Проверить логи перезапуска
 tail -f /home/antonio/ws-adapter-restart.log
 ```
+
+## Телеграм бот
+```bash
+docker build -t telegram_bot .
+docker run -d --name telegram_bot --restart unless-stopped --env-file .env telegram_bot
+```
+
+
+
+docker compose build
+
+
+
+
+
+
+docker ps Для просмотра только запущенных контейнеров
+docker ps -a Для просмотра всех контейнеров, включая остановленные
+
+docker system prune -a --volumes Быстрая очистка всего неиспользуемого
+
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+docker rmi $(docker images -aq)
+docker volume prune -f
+docker network prune -f
+docker builder prune -a -f
+
+
+
+
+docker run -v ./ws_adapter/:/usr/src/app/ my_image
+
+
+VOLUME ["/usr/src/app/"]

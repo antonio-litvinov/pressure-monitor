@@ -1,3 +1,4 @@
+import os
 import logging
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -10,14 +11,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import os
-from supabase import create_client, Client
+token = os.environ.get("GIGADOC_TOKEN")
 
-token: str = os.environ.get("GIGADOC_TOKEN")
-
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+# Функция для обработки ошибок
+def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
+    logging.error(f"Ошибка: {context.error}")
 
 # Обработчик команды /start — отправляет кнопку для запуска мини-аппы
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -79,27 +77,23 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         lower = parsed.get("lower", "")
         text = f"🩺 Замер от {date} {time}:\n<b>{upper}</b> на <b>{lower}</b>"
 
-        supabase.table("measures").insert({
-            "name": user, 
-            "date": date, 
-            "time": time, 
-            "upper": upper, 
-            "lower": lower
-        }).execute()
-
     except Exception:
         text = "Ошибка обработки данных замера"
-
+    
+    with open('/app/measures.log', 'a') as f:
+        f.write(f"{user},{date},{time},{upper},{lower}\n")
 
     await update.message.reply_text(f"{text}", parse_mode='HTML')
 
 def main():
-    application = Application.builder().token(os.environ.get("TOKEN")).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex("^❓ Помощь$"), help_button))
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Построение приложения и добавление обработчиков
+    app = Application.builder().token(os.environ.get("TOKEN")).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^❓ Помощь$"), help_button))
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
+    app.add_error_handler(error_handler)
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()

@@ -387,11 +387,6 @@
 
         // Настраивает MediaRecorder для записи видео
         function setupMediaRecorder() {
-            if (!VIDEO_MIME_TYPE) {
-                showError('Запись видео не поддерживается в этом браузере');
-                return;
-            }
-            
             try {
                 // Настройки MediaRecorder с учетом iOS
                 const options = {
@@ -452,18 +447,6 @@
         // Инициализирует камеру при загрузке страницы
         async function initializeCamera() {
             try {
-                // Проверяем поддержку MediaRecorder перед инициализацией камеры
-                const supportCheck = checkMediaRecorderSupport();
-                if (!supportCheck.supported) {
-                    showError(supportCheck.message);
-                    return;
-                }
-                
-                // Проверяем HTTPS для iOS
-                //if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                //    showError('Для работы с камерой требуется HTTPS');
-                //    return;
-                //}
                 
                 // Настройки камеры с учетом ограничений iOS
                 const constraints = {
@@ -525,12 +508,6 @@
 
             // Если уже идет запись, игнорируем нажатие
             if (mediaRecorder && mediaRecorder.state === 'recording') {
-                return;
-            }
-            
-            // Проверяем поддержку MediaRecorder
-            if (!VIDEO_MIME_TYPE) {
-                showError('Запись видео не поддерживается в этом браузере');
                 return;
             }
             
@@ -753,8 +730,6 @@
             const dateStr = now.toLocaleDateString('ru-RU');
             const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             
-            const tg = window.Telegram.WebApp;
-            tg.ready();
             tg.sendData(JSON.stringify({
                 date: dateStr,
                 time: timeStr,
@@ -805,8 +780,15 @@
         recordButton.addEventListener('click', startRecording);
         errorCloseBtn.addEventListener('click', hideError);
 
+        // Глобальная переменная для Telegram WebApp
+        const tg = window.Telegram.WebApp;
+
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация Telegram WebApp
+            tg.ready();
+            tg.expand();
+            
             // Обновление CSS
             const link = document.querySelector('link[href*="styles.css"]');
             if (link) {
@@ -823,12 +805,12 @@
             }
             
             // Проверяем HTTPS
-            //if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-            //    showError('Для работы с камерой требуется HTTPS');
-            //    recordButton.disabled = true;
-            //    recordButton.textContent = '❌ Требуется HTTPS';
-            //    return;
-            //}
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                showError('Для работы с камерой требуется HTTPS');
+                recordButton.disabled = true;
+                recordButton.textContent = '❌ Требуется HTTPS';
+                return;
+            }
             
             // Инициализация камеры
             initializeCamera();

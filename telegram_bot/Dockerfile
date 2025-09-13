@@ -7,6 +7,4 @@ RUN pip install -r requirements.txt
 
 COPY bot.py .
 
-EXPOSE 5000
-
 CMD ["python", "bot.py"]
