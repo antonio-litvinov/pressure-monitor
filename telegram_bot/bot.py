@@ -67,7 +67,7 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 # Прием данных из мини-аппы
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = update.effective_message.web_app_data.data
-    user = update.effective_user.username
+    user = update.effective_user.id
 
     try:
         parsed = json.loads(data)
