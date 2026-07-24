@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="420" viewBox="0 0 1200 420"
+     role="img" aria-labelledby="arch-title arch-desc">
+  <title id="arch-title">Архитектура pressure-monitor</title>
+  <desc id="arch-desc">Telegram-бот открывает мини-приложение, которое пишет 10-секундное видео и отправляет его в ws_adapter; тот проверяет видео и передаёт кадры AI-модели gigadoc по WebSocket, а результат возвращается пользователю в чат.</desc>
+
+  <defs>
+    <linearGradient id="archBrand" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5b7aa3"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="420" rx="28" fill="#0b1526"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+    <text x="64" y="56" font-size="15" font-weight="600" letter-spacing="2" fill="#8aa0be">КАК ЭТО РАБОТАЕТ</text>
+
+    <!-- connecting track behind the cards -->
+    <line x1="154" y1="210" x2="960" y2="210" stroke="#20355a" stroke-width="2"/>
+
+    <!-- step labels above the track, clear of card tops -->
+    <g font-size="13" fill="#7d93b3" text-anchor="middle">
+      <text x="282" y="98">10 сек видео</text>
+      <path d="M244 112 L 318 112" stroke="#5b7aa3" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <text x="547" y="98">POST /upload</text>
+      <path d="M514 112 L 578 112" stroke="#5b7aa3" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <text x="822" y="98">WebSocket · кадры</text>
+      <path d="M794 112 L 858 112" stroke="#5b7aa3" stroke-width="1.5" marker-end="url(#arrow)"/>
+    </g>
+
+    <!-- Node 1: Telegram user -->
+    <g transform="translate(64 130)">
+      <rect width="180" height="160" rx="18" fill="#111f36" stroke="#20355a" stroke-width="1.5"/>
+      <text x="90" y="46" font-size="30" text-anchor="middle">🙋</text>
+      <text x="90" y="80" font-size="16" font-weight="700" fill="#f5f7fa" text-anchor="middle">Пользователь</text>
+      <text x="90" y="102" font-size="14" fill="#8aa0be" text-anchor="middle">Telegram-бот</text>
+      <text x="90" y="122" font-size="13" fill="#5b7aa3" text-anchor="middle">bot.py</text>
+    </g>
+
+    <!-- Node 2: Mini App -->
+    <g transform="translate(310 130)">
+      <rect width="200" height="160" rx="18" fill="#111f36" stroke="#20355a" stroke-width="1.5"/>
+      <text x="100" y="46" font-size="30" text-anchor="middle">📱</text>
+      <text x="100" y="80" font-size="16" font-weight="700" fill="#f5f7fa" text-anchor="middle">Mini App</text>
+      <text x="100" y="102" font-size="14" fill="#8aa0be" text-anchor="middle">запись с камеры</text>
+      <text x="100" y="122" font-size="13" fill="#5b7aa3" text-anchor="middle">app.html</text>
+    </g>
+
+    <!-- Node 3: ws_adapter -->
+    <g transform="translate(580 130)">
+      <rect width="210" height="160" rx="18" fill="#111f36" stroke="url(#archBrand)" stroke-width="1.5"/>
+      <text x="105" y="46" font-size="30" text-anchor="middle">🧩</text>
+      <text x="105" y="80" font-size="16" font-weight="700" fill="#f5f7fa" text-anchor="middle">ws_adapter</text>
+      <text x="105" y="102" font-size="14" fill="#8aa0be" text-anchor="middle">проверка · очередь</text>
+      <text x="105" y="122" font-size="13" fill="#5b7aa3" text-anchor="middle">Flask · Gunicorn</text>
+    </g>
+
+    <!-- Node 4: AI model -->
+    <g transform="translate(860 130)">
+      <rect width="200" height="160" rx="18" fill="#111f36" stroke="#20355a" stroke-width="1.5"/>
+      <text x="100" y="46" font-size="30" text-anchor="middle">🤖</text>
+      <text x="100" y="80" font-size="16" font-weight="700" fill="#f5f7fa" text-anchor="middle">AI-модель</text>
+      <text x="100" y="102" font-size="14" fill="#8aa0be" text-anchor="middle">оценка давления</text>
+      <text x="100" y="122" font-size="13" fill="#5b7aa3" text-anchor="middle">gigadoc · ws_server</text>
+    </g>
+
+    <!-- return path -->
+    <path d="M960 292 C 960 344, 154 344, 154 292" fill="none" stroke="#2f7d61" stroke-width="2" stroke-dasharray="2 6" marker-end="url(#arrow)"/>
+    <text x="557" y="372" font-size="14" fill="#4fae8b" text-anchor="middle">результат «128 на 82» — обратно в чат</text>
+  </g>
+</svg>

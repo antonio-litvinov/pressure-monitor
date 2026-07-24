@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="400" viewBox="0 0 1200 400"
+     role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">pressure-monitor — цифровой тонометр</title>
+  <desc id="hero-desc">Измерение артериального давления по 10-секундному видео лица через Telegram Mini App: запись, отправка, AI-анализ, результат.</desc>
+
+  <defs>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="brandSoft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="18%" r="70%">
+      <stop offset="0%" stop-color="#1c3a5e" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0b1526" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="400" rx="28" fill="#0b1526"/>
+  <rect width="1200" height="400" rx="28" fill="url(#glow)"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+
+    <!-- Left: identity -->
+    <g transform="translate(64 78)">
+      <text x="0" y="0" font-size="16" font-weight="600" letter-spacing="2.5" fill="#8aa0be">TELEGRAM MINI APP · AI</text>
+
+      <text x="0" y="56" font-size="52" font-weight="700" fill="url(#brand)">Цифровой</text>
+      <text x="0" y="112" font-size="52" font-weight="700" fill="url(#brand)">тонометр</text>
+
+      <text x="0" y="162" font-size="21" font-weight="500" fill="#dbe4f0">Давление измеряется по 10-секундному</text>
+      <text x="0" y="190" font-size="21" font-weight="500" fill="#dbe4f0">видео лица — телефон вместо манжеты.</text>
+
+      <g transform="translate(0 226)" font-size="16" font-weight="600" fill="#9db2cf">
+        <text x="0" y="0">pressure-monitor</text>
+        <circle cx="158" cy="-5" r="2.5" fill="#3b5a80"/>
+        <text x="172" y="0">Flask</text>
+        <circle cx="228" cy="-5" r="2.5" fill="#3b5a80"/>
+        <text x="242" y="0">WebSocket AI</text>
+        <circle cx="368" cy="-5" r="2.5" fill="#3b5a80"/>
+        <text x="382" y="0">Docker</text>
+      </g>
+    </g>
+
+    <!-- Right: real mini app flow (mirrors app.html progress steps) -->
+    <g transform="translate(700 48)">
+      <rect x="0" y="0" width="436" height="304" rx="24" fill="#0f2038" stroke="#20355a" stroke-width="1.5"/>
+
+      <g transform="translate(28 34)">
+        <circle cx="8" cy="-5" r="4" fill="url(#brand)"/>
+        <text x="22" y="0" font-size="15" font-weight="600" fill="#dbe4f0">Измерить</text>
+        <text x="22" y="20" font-size="13" fill="#7d93b3">app.html · Telegram WebApp</text>
+      </g>
+
+      <!-- step sequence: Запись -> Отправка -> AI-анализ -> Готово -->
+      <g transform="translate(28 100)">
+        <line x1="20" y1="0" x2="368" y2="0" stroke="#20355a" stroke-width="2"/>
+        <line x1="20" y1="0" x2="368" y2="0" stroke="url(#brand)" stroke-width="2"/>
+
+        <g transform="translate(20 0)">
+          <circle r="20" fill="url(#brand)"/>
+          <text x="0" y="6" font-size="16" text-anchor="middle">📹</text>
+          <text x="0" y="44" font-size="16" font-weight="600" fill="#dbe4f0" text-anchor="middle">Запись</text>
+        </g>
+        <g transform="translate(143 0)">
+          <circle r="20" fill="url(#brand)"/>
+          <text x="0" y="6" font-size="16" text-anchor="middle">📤</text>
+          <text x="0" y="44" font-size="16" font-weight="600" fill="#dbe4f0" text-anchor="middle">Отправка</text>
+        </g>
+        <g transform="translate(266 0)">
+          <circle r="20" fill="url(#brand)"/>
+          <text x="0" y="6" font-size="16" text-anchor="middle">🤖</text>
+          <text x="0" y="44" font-size="16" font-weight="600" fill="#dbe4f0" text-anchor="middle">AI-анализ</text>
+        </g>
+        <g transform="translate(368 0)">
+          <circle r="20" fill="#10b981"/>
+          <text x="0" y="6" font-size="16" text-anchor="middle">✅</text>
+          <text x="0" y="44" font-size="16" font-weight="600" fill="#dbe4f0" text-anchor="middle">Готово</text>
+        </g>
+      </g>
+
+      <!-- result readout, matching the bot's own message format -->
+      <g transform="translate(28 200)">
+        <rect x="0" y="0" width="380" height="80" rx="16" fill="url(#brandSoft)" stroke="#2a4870" stroke-width="1"/>
+        <text x="24" y="30" font-size="15" fill="#9db2cf">Замер от 21.07 14:02</text>
+        <text x="24" y="62" font-size="26" font-weight="700" fill="#f5f7fa">128<tspan font-size="16" font-weight="500" fill="#9db2cf"> на </tspan>82</text>
+        <text x="320" y="60" font-size="15" fill="#9db2cf" text-anchor="end">мм рт.ст.</text>
+      </g>
+    </g>
+  </g>
+</svg>
